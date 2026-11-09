@@ -75,7 +75,9 @@ export function validateKeymap(input: unknown): ValidationResult {
     const tdIds = new Set<number>();
     const usedMacros: Array<[string, number]> = [];
     const usedTds: Array<[string, number]> = [];
+    const usedLayers: Array<[string, number]> = [];
     const note = (path: string, r: ReturnType<typeof checkTok>) => {
+      if (r?.layerRef !== undefined) usedLayers.push([path, r.layerRef]);
       if (r?.macroId !== undefined) usedMacros.push([path, r.macroId]);
       if (r?.tapDanceId !== undefined) usedTds.push([path, r.tapDanceId]);
     };
@@ -128,8 +130,11 @@ export function validateKeymap(input: unknown): ValidationResult {
 
     const comboIds = new Set<number>();
     idList("Combos", MAX_COMBOS, comboIds, (e, p) => {
-      checkTok(`${p}.Key1`, e.Key1);
-      checkTok(`${p}.Key2`, e.Key2);
+      // コンボのメンバーは、KC_ ではなくスキャンコード（SC_XXXX）で書く（エディタの読み込みがそう読む）。
+      for (const f of ["Key1", "Key2"]) {
+        if (typeof e[f] !== "string" || parseRawScanCode(e[f] as string) === null) err(`${p}.${f}`, "コンボのキーは SC_XXXX（16進4桁。例: SC_0024）で書きます。KC_ の名前は使えません");
+      }
+      if (e.Key1 !== undefined && e.Key1 === e.Key2) err(`${p}.Key2`, "コンボの2つのキーは、別のキーにしてください");
       note(`${p}.Output`, checkTok(`${p}.Output`, e.Output));
     }, () => summary.combos++);
 
@@ -143,6 +148,10 @@ export function validateKeymap(input: unknown): ValidationResult {
       note(`${p}.Replacement`, checkTok(`${p}.Replacement`, e.Replacement));
     }, () => summary.keyOverrides++);
 
+    if (Array.isArray(kb.Layers) && kb.Layers.length > 0) {
+      const count = Math.max(...kb.Layers.map((l: unknown) => (isObj(l) && Number.isInteger(l.Index) ? (l.Index as number) + 1 : 0)));
+      for (const [p, n] of usedLayers) if (n >= count) warn(p, `レイヤー ${n} へ切り替えますが、このファイルにレイヤー ${n} がありません（読み込むと、レイヤーが足りない旨の注意が出ます）`);
+    }
     for (const [p, id] of usedMacros) if (!macroIds.has(id)) warn(p, `MACRO(${id}) を使っていますが、このキーボードにマクロ ${id} の定義がありません`);
     for (const [p, id] of usedTds) if (!tdIds.has(id)) warn(p, `TAPDANCE(${id}) を使っていますが、このキーボードにタップダンス ${id} の定義がありません`);
   });

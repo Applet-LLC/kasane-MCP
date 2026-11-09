@@ -4,6 +4,7 @@ import type { DocsIndex } from "./docs/index.js";
 import { KeymapTool, KeymapToolError, type KeymapEntry } from "./adapters/keymaptool.js";
 import { nameForScanCode, scanCodeHex, searchKeycodes } from "./keycodes/index.js";
 import { validateKeymap } from "./keymap/validate.js";
+import { EMERGENCY_NOTE, createKeymapFile, importSteps } from "./keymap/write.js";
 
 type Content = { content: Array<{ type: "text"; text: string }>; isError?: boolean };
 
@@ -183,5 +184,35 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
       annotations: RO,
     },
     ({ keymap }) => json(validateKeymap(keymap)),
+  );
+
+  server.registerTool(
+    "kasane_create_keymap_file",
+    {
+      title: "設定ファイルを作る",
+      description:
+        "kasane の設定ファイル（*.kasane.json。Format=\"kasane-export\"、Version 1、キーは \"SC_003A\": \"KC_LCTL\" のスキャンコード形式）を、検証したうえで出力フォルダ（既定: ドキュメント\\kasane-mcp）に新しいファイルとして保存する。検証でエラーがあれば保存しない。ドライバにも kasane の設定にも書き込まない: 反映は、ユーザーがエディタの「インポート／エクスポート...」で読み込み、「キーボードに適用(ON)」を押して行う。結果の手順と緊急解除の方法を、そのままユーザーに伝えること。一部のキーだけを変える設定は、ユーザーに「追加」で読み込むよう伝える（「置き換え」だと、ファイルに無いキーが初期状態に戻る）。キーコードは、書く前に kasane_search_keycodes で確かめる。",
+      inputSchema: {
+        keymap: z.union([z.string(), z.record(z.unknown())]).describe("*.kasane.json の中身（JSON の文字列、またはオブジェクト）"),
+        name: z.string().max(60).optional().describe("ファイル名に入れる短い名前（例: capslock-to-ctrl）。省略可"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    ({ keymap, name }) => {
+      const r = createKeymapFile(keymap, { name });
+      if (!r.ok && r.reason === "invalid") {
+        return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ saved: false, message: "検証でエラーが見つかったため、ファイルは作っていません。直してから、もう一度呼んでください。", errors: r.validation.errors, warnings: r.validation.warnings }, null, 2) }] };
+      }
+      if (!r.ok) return failure(`ファイルを保存できませんでした: ${r.message}`);
+      return json({
+        saved: true,
+        path: r.path,
+        summary: r.validation.summary,
+        warnings: r.validation.warnings,
+        stepsForUser: importSteps(r.path),
+        ifLockedOut: EMERGENCY_NOTE,
+        note: "このファイルを作っただけで、キーボードの設定は何も変わっていません。",
+      });
+    },
   );
 }

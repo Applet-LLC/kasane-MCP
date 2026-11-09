@@ -35,8 +35,13 @@ export function registerPrompts(server: McpServer): void {
       user(
         [
           `ユーザーの依頼: ${request}`,
-          "kasane-doc://manual/ja/08-key-assign と 12-recipes を検索し、エディタで設定する手順を案内してください。",
-          "設定の書き込みは、この MCP からは行えません。ユーザーがエディタで操作します。",
+          "次の順に進めてください。",
+          "1. kasane_status で導入状況を確かめる。",
+          "2. kasane_list_devices と kasane_get_keymap で、対象のキーボードと今の割り当てを確かめる。",
+          "3. 使うキーコードは、書く前に kasane_search_keycodes で確かめる。マクロやコンボなどの書き方は、kasane_search_docs（08-key-assign、09-advanced、12-recipes）で確かめる。",
+          "4. 設定を *.kasane.json にして、kasane_validate_keymap で点検し、通ったら kasane_create_keymap_file で保存する。",
+          "5. 結果の stepsForUser と ifLockedOut を、ユーザーにそのまま伝える。",
+          "設定の書き込みは、この MCP からは行えません。ファイルを作るだけで、ユーザーがエディタで読み込んで適用します。",
           "電源系のキー（スリープ、電源）を割り当てる場合は、その危険を先に伝えてください。",
           GROUNDING,
         ].join("\n"),

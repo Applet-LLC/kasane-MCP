@@ -25,6 +25,8 @@ export interface TokenResult {
   /** 参照する番号（MACRO / TAPDANCE）。 */
   macroId?: number;
   tapDanceId?: number;
+  /** 切り替え先のレイヤー番号（MO / TG / LT など）。 */
+  layerRef?: number;
   error?: string;
 }
 
@@ -96,12 +98,12 @@ export function checkToken(raw: string): TokenResult {
     case "TO":
     case "TT":
       if (parts.length !== 1) return fail(`${call.name}(レイヤー番号) の形で書きます`);
-      return layer(parts[0]) === null ? fail(layerErr) : { ok: true, kind: "layer", baseKeys: [] };
+      return layer(parts[0]) === null ? fail(layerErr) : { ok: true, kind: "layer", baseKeys: [], layerRef: layer(parts[0])! };
     case "LM": {
       if (parts.length !== 2) return fail("LM(レイヤー番号, MOD_LCTL|MOD_LSFT) の形で書きます");
       if (layer(parts[0]) === null) return fail(layerErr);
       const mods2 = parts[1].split("|");
-      return mods2.every((m) => MOD_BITS.has(m)) ? { ok: true, kind: "layer", baseKeys: [] } : fail("修飾は MOD_LCTL などを | でつないで書きます");
+      return mods2.every((m) => MOD_BITS.has(m)) ? { ok: true, kind: "layer", baseKeys: [], layerRef: layer(parts[0])! } : fail("修飾は MOD_LCTL などを | でつないで書きます");
     }
     case "OSM":
       return parts.length === 1 && parts[0].split("|").every((m) => MOD_BITS.has(m)) ? { ok: true, kind: "oneshot-mod", baseKeys: [] } : fail("OSM(MOD_LSFT) の形で書きます");
@@ -116,7 +118,7 @@ export function checkToken(raw: string): TokenResult {
       if (parts.length !== 2) return fail("LT(レイヤー番号, KC_A) の形で書きます");
       if (layer(parts[0]) === null) return fail(layerErr);
       const k = baseKey(parts[1]);
-      return k ? { ok: true, kind: "layer-tap", baseKeys: [k.name] } : fail(`「${parts[1]}」は、使えるキーではありません`);
+      return k ? { ok: true, kind: "layer-tap", baseKeys: [k.name], layerRef: layer(parts[0])! } : fail(`「${parts[1]}」は、使えるキーではありません`);
     }
     case "MACRO": {
       const id = parts.length === 1 ? intIn(parts[0], MAX_MACROS) : null;

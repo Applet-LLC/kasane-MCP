@@ -77,11 +77,33 @@ describe("validateKeymap", () => {
   it("マクロ・コンボ・タップダンス・キー置換の点検", () => {
     const b = base() as Record<string, any>;
     b.Keyboards[0].Macros = [{ Id: 0, Keys: ["KC_A", "LCTL(KC_C)"] }, { Id: 0, Keys: [] }];
-    b.Keyboards[0].Combos = [{ Id: 16, Key1: "KC_A", Key2: "KC_B", Output: "KC_C" }];
+    b.Keyboards[0].Combos = [{ Id: 16, Key1: "SC_001E", Key2: "SC_0030", Output: "KC_C" }];
     b.Keyboards[0].TapDances = [{ Id: 0, SingleTap: "KC_A", SingleHold: "", DoubleTap: "KC_B", TripleTap: "" }];
     b.Keyboards[0].KeyOverrides = [{ Id: 0, Mods: "MOD_BAD", Key: "KC_BSPC", Replacement: "KC_DEL" }];
     const r = validateKeymap(b);
     expect(r.errors.map((e) => e.path)).toEqual(expect.arrayContaining(["Keyboards[0].Macros[1].Id", "Keyboards[0].Combos[0].Id", "Keyboards[0].KeyOverrides[0].Mods"]));
     expect(r.errors).toHaveLength(3);
+  });
+});
+
+describe("validateKeymap（エディタの読み込みで見つかった点）", () => {
+  it("コンボのキーは SC_XXXX。KC_ の名前はエラー", () => {
+    const b = base() as Record<string, any>;
+    b.Keyboards[0].Combos = [{ Id: 0, Key1: "KC_J", Key2: "KC_K", Output: "KC_ESC" }];
+    const r = validateKeymap(b);
+    expect(r.errors.map((e) => e.path)).toEqual(["Keyboards[0].Combos[0].Key1", "Keyboards[0].Combos[0].Key2"]);
+    b.Keyboards[0].Combos = [{ Id: 0, Key1: "SC_0024", Key2: "SC_0025", Output: "KC_ESC" }];
+    expect(validateKeymap(b).ok).toBe(true);
+    b.Keyboards[0].Combos = [{ Id: 0, Key1: "SC_0024", Key2: "SC_0024", Output: "KC_ESC" }];
+    expect(validateKeymap(b).ok).toBe(false);
+  });
+  it("無いレイヤーへの切り替えは警告", () => {
+    const b = base();
+    b.Keyboards[0].Layers[0].Keys = { SC_003A: "MO(1)", SC_0001: "LT(2, KC_SPC)" };
+    const r = validateKeymap(b);
+    expect(r.ok).toBe(true);
+    expect(r.warnings.map((w) => w.path).sort()).toEqual(["Keyboards[0].Layers[0].Keys.SC_0001", "Keyboards[0].Layers[0].Keys.SC_003A"]);
+    (b.Keyboards[0].Layers as unknown[]).push({ Index: 2, Keys: {} });
+    expect(validateKeymap(b).warnings).toEqual([]);
   });
 });

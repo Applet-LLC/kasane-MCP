@@ -16,7 +16,7 @@ async function main(): Promise<void> {
   if (docs.pages.length === 0) {
     process.stderr.write("kasane-mcp: kasane のマニュアルが見つかりません（KASANE_HOME を設定するか、kasane をインストールしてください）。\n");
   }
-  const server = new McpServer({ name: "kasane-mcp", version: "0.2.0" });
+  const server = new McpServer({ name: "kasane-mcp", version: "0.3.0" });
   registerDocs(server, docs);
   registerTools(server, docs, new KeymapTool(locateKeymapTool(docs.location.home)));
   registerPrompts(server);
