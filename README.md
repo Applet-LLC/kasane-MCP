@@ -82,3 +82,9 @@ npm test
 ## ライセンス
 
 Apache License 2.0。
+
+## リリース（メンテナ向け）
+
+タグ（`vX.Y.Z`）の push で、`.github/workflows/release.yml` が npm に公開します。長期有効なトークンは使わず、npm の Trusted Publishing（OIDC）です。最初の公開の前に、`release.yml` の冒頭にある準備（初回の手動公開と、Trusted publisher の登録）が要ります。リポジトリを public にしてから行います。
+
+公開前の点検は `node scripts/check-package.mjs` で行えます（`dist/` が入っていること、テストのフィクスチャや開発用ファイルが入っていないことを確かめます）。

@@ -1,0 +1,52 @@
+name: Release
+
+# バージョンのタグ（vX.Y.Z）を push すると、npm に公開する。
+# 長期有効なトークン（NPM_TOKEN）はリポジトリに置かず、npm の Trusted Publishing（OIDC）を使う。
+#
+# 初めて公開するときの準備（まだ行っていない。リポジトリを public にしてから）:
+#   1. 0.x.0 を手元から `npm publish` して、パッケージを npmjs.com に作る
+#      （Trusted publisher は、既にあるパッケージの設定画面からしか登録できない）。
+#   2. npmjs.com のパッケージの Settings > Trusted publishing で、GitHub Actions を追加する。
+#      organization = Applet-LLC、repository = kasane-MCP、workflow filename = release.yml。
+#   3. 以降は、package.json の version を上げて、同じ番号のタグ（v0.4.0 など）を push する。
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write # npm の OIDC 認証に必要
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22" # Trusted Publishing は npm CLI 11.5.1 以上、Node 22.14.0 以上が必要
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+      - name: Verify package.json version matches the pushed tag
+        shell: pwsh
+        run: |
+          $pkgVersion = node -p "require('./package.json').version"
+          $tagVersion = "${{ github.ref_name }}" -replace '^v', ''
+          if ($pkgVersion -ne $tagVersion) {
+            throw "package.json version ($pkgVersion) does not match tag ${{ github.ref_name }}"
+          }
+
+      - name: Check package contents
+        run: node scripts/check-package.mjs
+
+      - name: Publish to npm
+        run: npm publish
