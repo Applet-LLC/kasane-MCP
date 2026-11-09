@@ -1,0 +1,2 @@
+UniqId=55F70000 TapTermMs=200 ComboTermMs=50 TapDanceTermMs=200
+  mode=hold quicktap=default(=TapTermMs) ttcount=5

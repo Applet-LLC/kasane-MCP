@@ -1,0 +1,187 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+import type { DocsIndex } from "./docs/index.js";
+import { KeymapTool, KeymapToolError, type KeymapEntry } from "./adapters/keymaptool.js";
+import { nameForScanCode, scanCodeHex, searchKeycodes } from "./keycodes/index.js";
+import { validateKeymap } from "./keymap/validate.js";
+
+type Content = { content: Array<{ type: "text"; text: string }>; isError?: boolean };
+
+const json = (value: unknown): Content => ({ content: [{ type: "text", text: JSON.stringify(value, null, 2) }] });
+const failure = (text: string): Content => ({ isError: true, content: [{ type: "text", text }] });
+
+async function guard(fn: () => Promise<Content>): Promise<Content> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e instanceof KeymapToolError) return failure(e.message);
+    throw e;
+  }
+}
+
+const RO = { readOnlyHint: true, openWorldHint: false } as const;
+const uniqId = z.string().regex(/^[0-9A-Fa-f]{1,8}$/).describe("kasane_list_devices で得た UniqId（16進数。例: 55F70000）");
+
+/** kasane のバージョンを、マニュアルの先頭行（「かさね1.01 2026-11-02」）から読む。 */
+export function kasaneVersion(docs: DocsIndex): string | null {
+  const html = docs.manualHeader();
+  return html ? (/かさね\s*([0-9]+(?:\.[0-9]+)+)/.exec(html)?.[1] ?? null) : null;
+}
+
+function describeEntry(e: KeymapEntry) {
+  const src = parseInt(e.source, 16);
+  return {
+    key: nameForScanCode(src) ?? scanCodeHex(src),
+    scanCode: scanCodeHex(src),
+    layers: e.layers.map((l) => ({ layer: l.layer, action: describeAction(l.type, l.param1, l.param2) })),
+  };
+}
+
+function describeAction(type: string, p1: number, p2: string): string {
+  const sc = parseInt(p2, 16);
+  const key = nameForScanCode(sc) ?? scanCodeHex(sc);
+  switch (type) {
+    case "none": return "KC_NO";
+    case "transparent": return "KC_TRNS";
+    case "key": return key;
+    case "MO": case "TG": case "DF": case "OSL": case "TO": case "TT": return `${type}(${p1})`;
+    case "MACRO": case "TAPDANCE": return `${type}(${p1})`;
+    case "LT": return `LT(${p1}, ${key})`;
+    case "HLP": return `HLP(${sc})`;
+    default: return `${type}(param1=${p1}, param2=${p2})`;
+  }
+}
+
+export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTool): void {
+  server.registerTool(
+    "kasane_status",
+    {
+      title: "kasane の状態",
+      description:
+        "kasane の導入状況を調べる。KeymapTool とドキュメントの有無、バージョン、接続中のキーボード数、ライセンスが無効らしい兆候（UniqId=00000000）を返し、次にやることを示す。導入やトラブルの相談では、最初にこれを呼ぶ。読み取り専用。",
+      inputSchema: {},
+      annotations: RO,
+    },
+    async () => {
+      const next: string[] = [];
+      const status: Record<string, unknown> = {
+        kasaneHome: docs.location.home,
+        docsFound: docs.pages.length > 0,
+        keymapToolFound: tool.exe !== null,
+        keymapToolPath: tool.exe,
+        kasaneVersion: kasaneVersion(docs),
+      };
+      if (!tool.exe) next.push("kasane をインストールするか、環境変数 KASANE_HOME にインストール先を設定してください。");
+      else {
+        try {
+          const list = await tool.list();
+          status.deviceCount = list.deviceCount;
+          status.devices = list.devices.length;
+          if (list.licenseHint) {
+            status.licenseHint = list.licenseHint;
+            next.push("ライセンスの認証を確認してください（kasane-doc://manual/ja/03-license）。");
+          }
+          if (list.deviceCount === 0) next.push("ドライバが読み込まれていないか、キーボードを認識していません。インストールと再起動を確認してください（kasane-doc://manual/ja/01-install）。");
+        } catch (e) {
+          status.keymapToolError = (e as Error).message;
+          next.push("KeymapTool がデバイス一覧を返しませんでした。ドライバの導入と、再起動の保留を確認してください。");
+        }
+      }
+      if (docs.pages.length === 0) next.push("マニュアルが見つかりません。");
+      status.next = next.length ? next : ["特に問題は見つかりませんでした。"];
+      return json(status);
+    },
+  );
+
+  server.registerTool(
+    "kasane_list_devices",
+    {
+      title: "キーボードの一覧",
+      description: "ドライバが認識している、接続中のキーボードを一覧にする（UniqId、リマップが有効か、レイヤーの状態、HardwareId）。他の kasane_get_* ツールに渡す UniqId は、ここから得る。読み取り専用。",
+      inputSchema: {},
+      annotations: RO,
+    },
+    () => guard(async () => json(await tool.list())),
+  );
+
+  server.registerTool(
+    "kasane_get_keymap",
+    {
+      title: "今のキーマップ",
+      description:
+        "キーボードに今読み込まれているキーマップを返す。既定では、レイヤー 0 で元のキーと違うキー（リマップされたキー）と、レイヤー 1 以降に割り当てのあるキーだけを返す。all=true で全キー。読み取り専用で、ドライバの設定は変えない。",
+      inputSchema: { uniqId, all: z.boolean().optional().describe("true で、変更のないキーも含めて全部返す") },
+      annotations: RO,
+    },
+    ({ uniqId: id, all }) =>
+      guard(async () => {
+        const km = await tool.keymap(id);
+        const described = km.entries.map((e) => ({ raw: e, d: describeEntry(e) }));
+        const changed = described.filter(({ raw, d }) => {
+          if (all) return true;
+          return raw.layers.some((l) => (l.layer === 0 ? !(l.type === "key" && parseInt(l.param2, 16) === parseInt(raw.source, 16)) : l.type !== "transparent"));
+        });
+        return json({
+          uniqId: km.uniqId,
+          layerCount: km.layerCount,
+          keyCount: km.keyCount,
+          shown: changed.length,
+          note: all ? undefined : "元のキーと同じ割り当てのキーは省いています（all=true で全部）。",
+          keys: changed.map((x) => x.d),
+        });
+      }),
+  );
+
+  server.registerTool(
+    "kasane_get_layer_state",
+    {
+      title: "レイヤーの状態",
+      description: "今有効なレイヤー（ビットマスク）、リマップが ON か、NICOLA（親指シフト）が ON かを返す。読み取り専用。",
+      inputSchema: { uniqId },
+      annotations: RO,
+    },
+    ({ uniqId: id }) => guard(async () => json(await tool.layerState(id))),
+  );
+
+  server.registerTool(
+    "kasane_get_settings",
+    {
+      title: "キーボードの設定",
+      description: "機能の有効・無効（マクロ、コンボ、タップダンス、キー置換）、タイミング（TapTerm など）、設定の共有範囲（型番ごと／この1台／すべて）をまとめて返す。読み取り専用。",
+      inputSchema: { uniqId },
+      annotations: RO,
+    },
+    ({ uniqId: id }) =>
+      guard(async () => {
+        const [features, config, scope] = await Promise.all([tool.features(id), tool.config(id), tool.scope(id)]);
+        return json({ features, config, scope });
+      }),
+  );
+
+  server.registerTool(
+    "kasane_search_keycodes",
+    {
+      title: "キーコードを探す",
+      description:
+        "kasane で使える KC_* のキーコードを、名前の一部（英語。例: CAPS、ENTER、LCTL、HENK）かスキャンコード（SC_003A）で探す。キーコードを書く前に、推測せずこれで確かめる。電源系のキーには dangerous=true が付く。読み取り専用。",
+      inputSchema: { query: z.string().min(1), limit: z.number().int().min(1).max(50).optional() },
+      annotations: RO,
+    },
+    ({ query, limit }) => {
+      const hits = searchKeycodes(query, limit ?? 20);
+      return hits.length ? json(hits) : { content: [{ type: "text" as const, text: "該当するキーコードはありません。英語の名前の一部（例: CAPS）で試してください。" }] };
+    },
+  );
+
+  server.registerTool(
+    "kasane_validate_keymap",
+    {
+      title: "設定ファイルを検証",
+      description:
+        "kasane の設定ファイル（*.kasane.json。Format=\"kasane-export\"）の中身を、ドライバにも設定にも触れずに点検する。キーコードの書き方、番号の範囲、重複、使っていないマクロの参照、電源系キーの警告を返す。設定を人に渡す前に必ず使う。",
+      inputSchema: { keymap: z.union([z.string(), z.record(z.unknown())]).describe("*.kasane.json の中身（JSON の文字列、またはオブジェクト）") },
+      annotations: RO,
+    },
+    ({ keymap }) => json(validateKeymap(keymap)),
+  );
+}

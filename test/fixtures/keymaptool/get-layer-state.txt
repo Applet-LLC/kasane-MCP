@@ -1,0 +1,1 @@
+UniqId=55F70000 Seq=13 Effective=0x0001 (Active=0x0000 App=0x0000 Default=0) LayerMap=ON NICOLA=OFF

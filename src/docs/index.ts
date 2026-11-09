@@ -49,6 +49,18 @@ export class DocsIndex {
     }
   }
 
+  /** マニュアルの先頭行（「かさね1.01 2026-11-02 …」）。バージョンの検出に使う。 */
+  manualHeader(): string | null {
+    const { manualDir } = this.location;
+    if (!manualDir) return null;
+    try {
+      const html = readFileSync(path.join(manualDir, "index.html"), "utf8");
+      return /<div class="pagehead">([\s\S]*?)<\/div>/.exec(html)?.[1].replace(/<[^>]+>/g, " ") ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   get(uri: string): DocPage | undefined {
     return this.pages.find((p) => p.uri === uri);
   }

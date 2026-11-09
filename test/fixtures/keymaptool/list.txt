@@ -1,0 +1,9 @@
+DeviceCount=4
+  UniqId=55F70000 HasLayerMap=1 Enabled=1 ActiveLayerMask=0x0001 HardwareId=ACPI\VEN_LEN&DEV_0071
+    InstanceKey=55F70000 ModelKey=F1DF0000 Binding=model
+  UniqId=CFE60000 HasLayerMap=0 Enabled=0 ActiveLayerMask=0x0001 HardwareId=HID\VID_04F2&PID_0400&REV_0103
+    InstanceKey=CFE60000 ModelKey=6C1A0000 Binding=model
+  UniqId=391B0000 HasLayerMap=0 Enabled=0 ActiveLayerMask=0x0001 HardwareId=HID\VID_13BA&PID_0001&REV_0210
+    InstanceKey=391B0000 ModelKey=ECBF0000 Binding=model
+  UniqId=C6DE0000 HasLayerMap=0 Enabled=0 ActiveLayerMask=0x0001 HardwareId=HID\VID_276D&PID_FFE2&REV_0100&MI_00
+    InstanceKey=C6DE0000 ModelKey=C5580000 Binding=model

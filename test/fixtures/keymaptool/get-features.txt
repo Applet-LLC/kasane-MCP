@@ -1,0 +1,1 @@
+UniqId=55F70000 Macro=1 Combo=1 TapDance=1 KeyOverride=1
