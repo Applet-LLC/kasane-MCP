@@ -4,6 +4,9 @@ import type { DocsIndex } from "./docs/index.js";
 import { KeymapTool, KeymapToolError, type KeymapEntry } from "./adapters/keymaptool.js";
 import { nameForScanCode, scanCodeHex, searchKeycodes } from "./keycodes/index.js";
 import { validateKeymap } from "./keymap/validate.js";
+import { renderFormat } from "./keymap/format.js";
+
+const FORMAT_URI = "kasane-doc://format/kasane-export";
 import { EMERGENCY_NOTE, createKeymapFile, importSteps } from "./keymap/write.js";
 
 type Content = { content: Array<{ type: "text"; text: string }>; isError?: boolean };
@@ -175,11 +178,30 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
   );
 
   server.registerTool(
+    "kasane_get_file_format",
+    {
+      title: "設定ファイルの書式",
+      description:
+        "kasane の設定ファイル（*.kasane.json）の書式の説明と、動く例（キーの入れ替え、マクロとキー置換、複数のレイヤー）を返す。必須の項目（Format、Version、Scope、Keyboards）、レイヤー・マクロ・コンボ・タップダンス・キー置換の書き方、動作の書き方（MO、LT、MT、LCTL(KC_C) など）、スキャンコードの例が入っている。設定ファイルを書く前に、まず呼ぶ。読み取り専用。",
+      inputSchema: {},
+      annotations: RO,
+    },
+    () => ({ content: [{ type: "text" as const, text: renderFormat() }] }),
+  );
+
+  server.registerResource(
+    "file-format",
+    FORMAT_URI,
+    { title: "kasane の設定ファイルの書式", mimeType: "text/markdown" },
+    () => ({ contents: [{ uri: FORMAT_URI, mimeType: "text/markdown", text: renderFormat() }] }),
+  );
+
+  server.registerTool(
     "kasane_validate_keymap",
     {
       title: "設定ファイルを検証",
       description:
-        "kasane の設定ファイル（*.kasane.json。Format=\"kasane-export\"）の中身を、ドライバにも設定にも触れずに点検する。キーコードの書き方、番号の範囲、重複、使っていないマクロの参照、電源系キーの警告を返す。設定を人に渡す前に必ず使う。",
+        "kasane の設定ファイル（*.kasane.json。Format=\"kasane-export\"）の中身を、ドライバにも設定にも触れずに点検する。キーコードの書き方、番号の範囲、重複、使っていないマクロの参照、電源系キーの警告を返す。設定を人に渡す前に必ず使う。書式が分からないときは、先に kasane_get_file_format を呼ぶ（推測で組み立てない）。",
       inputSchema: { keymap: z.union([z.string(), z.record(z.unknown())]).describe("*.kasane.json の中身（JSON の文字列、またはオブジェクト）") },
       annotations: RO,
     },
@@ -191,7 +213,7 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
     {
       title: "設定ファイルを作る",
       description:
-        "kasane の設定ファイル（*.kasane.json。Format=\"kasane-export\"、Version 1、キーは \"SC_003A\": \"KC_LCTL\" のスキャンコード形式）を、検証したうえで出力フォルダ（既定: ドキュメント\\kasane-mcp）に新しいファイルとして保存する。検証でエラーがあれば保存しない。ドライバにも kasane の設定にも書き込まない: 反映は、ユーザーがエディタの「インポート／エクスポート...」で読み込み、「キーボードに適用(ON)」を押して行う。結果の手順と緊急解除の方法を、そのままユーザーに伝えること。一部のキーだけを変える設定は、ユーザーに「追加」で読み込むよう伝える（「置き換え」だと、ファイルに無いキーが初期状態に戻る）。キーコードは、書く前に kasane_search_keycodes で確かめる。",
+        "kasane の設定ファイル（*.kasane.json。Format=\"kasane-export\"、Version 1、キーは \"SC_003A\": \"KC_LCTL\" のスキャンコード形式）を、検証したうえで出力フォルダ（既定: ドキュメント\\kasane-mcp）に新しいファイルとして保存する。検証でエラーがあれば保存しない。ドライバにも kasane の設定にも書き込まない: 反映は、ユーザーがエディタの「インポート／エクスポート...」で読み込み、「キーボードに適用(ON)」を押して行う。結果の手順と緊急解除の方法を、そのままユーザーに伝えること。一部のキーだけを変える設定は、ユーザーに「追加」で読み込むよう伝える（「置き換え」だと、ファイルに無いキーが初期状態に戻る）。キーコードは、書く前に kasane_search_keycodes で確かめる。ファイルの書式（必須の項目、レイヤー・マクロ・コンボなどの書き方）と動く例は、kasane_get_file_format で得られる。書く前に、まず呼ぶ。",
       inputSchema: {
         keymap: z.union([z.string(), z.record(z.unknown())]).describe("*.kasane.json の中身（JSON の文字列、またはオブジェクト）"),
         name: z.string().max(60).optional().describe("ファイル名に入れる短い名前（例: capslock-to-ctrl）。省略可"),
@@ -201,7 +223,7 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
     ({ keymap, name }) => {
       const r = createKeymapFile(keymap, { name });
       if (!r.ok && r.reason === "invalid") {
-        return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ saved: false, message: "検証でエラーが見つかったため、ファイルは作っていません。直してから、もう一度呼んでください。", errors: r.validation.errors, warnings: r.validation.warnings }, null, 2) }] };
+        return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ saved: false, message: "検証でエラーが見つかったため、ファイルは作っていません。直してから、もう一度呼んでください。", errors: r.validation.errors, warnings: r.validation.warnings, hint: r.validation.hint }, null, 2) }] };
       }
       if (!r.ok) return failure(`ファイルを保存できませんでした: ${r.message}`);
       return json({

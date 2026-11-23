@@ -4,7 +4,7 @@
 
 **このサーバーは、ドライバにも kasane の設定にも書き込みません。** 設定の反映は、ユーザーが kasane のエディタで行います。
 
-状態: v0.1.3（ドキュメント参照、読み取りツール、設定ファイルの生成）。
+状態: v0.1.4（ドキュメント参照、読み取りツール、設定ファイルの生成）。
 
 ## 提供するもの
 
@@ -17,9 +17,11 @@
 | ツール | `kasane_get_layer_state` | 有効なレイヤー、リマップの ON/OFF、NICOLA |
 | ツール | `kasane_get_settings` | 機能の有効/無効、タイミング、設定の共有範囲 |
 | ツール | `kasane_search_keycodes` | `KC_*` のキーコードを、名前の一部やスキャンコードで探す |
+| ツール | `kasane_get_file_format` | 設定ファイル（`*.kasane.json`）の書式の説明と、動く例を返す。ファイルを書く前に呼ぶ |
 | ツール | `kasane_validate_keymap` | `*.kasane.json` を、設定に触れずに点検する（キーコード、番号の範囲、重複、存在しないレイヤーへの参照、電源キーの警告） |
 | ツール | `kasane_create_keymap_file` | 検証に通った設定を、`*.kasane.json` として新しいファイルに保存する。反映の手順を返す |
 | リソース | `kasane-doc://manual/ja/{page}` | マニュアル（日本語）のページ全文 |
+| リソース | `kasane-doc://format/kasane-export` | 設定ファイルの書式の説明と例（`kasane_get_file_format` と同じ） |
 | リソース | `kasane-doc://cli-tutorial` | KeymapTool（CLI）のチュートリアル |
 | プロンプト | `setup-first-time` / `remap-key` / `recover-lockout` | 初回設定、キーの割り当て、入力できなくなったとき |
 

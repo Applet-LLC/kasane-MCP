@@ -1,4 +1,5 @@
 import type { TokenResult } from "../keycodes/index.js";
+import { FORMAT_HINT } from "./format.js";
 import { DANGEROUS_KEYS, MAX_COMBOS, MAX_KEY_OVERRIDES, MAX_LAYERS, MAX_MACROS, MAX_TAPDANCES, checkModMask, checkToken, parseRawScanCode } from "../keycodes/index.js";
 
 export interface Issue {
@@ -10,6 +11,8 @@ export interface Issue {
 
 export interface ValidationResult {
   ok: boolean;
+  /** 書式の誤りがあるときの、直し方の案内。 */
+  hint?: string;
   errors: Issue[];
   warnings: Issue[];
   summary: { keyboards: number; layers: number; keys: number; macros: number; combos: number; tapDances: number; keyOverrides: number };
@@ -166,5 +169,8 @@ export function validateKeymap(input: unknown): ValidationResult {
 
 function finish(issues: Issue[], summary: ValidationResult["summary"]): ValidationResult {
   const errors = issues.filter((i) => i.level === "error");
-  return { ok: errors.length === 0, errors, warnings: issues.filter((i) => i.level === "warning"), summary };
+  const result: ValidationResult = { ok: errors.length === 0, errors, warnings: issues.filter((i) => i.level === "warning"), summary };
+  // 最上位の項目が足りない・違うときは、書式の説明とひな形のありかを添える。
+  if (errors.some((e) => ["", "Format", "Version", "Scope", "Keyboards"].includes(e.path))) result.hint = FORMAT_HINT;
+  return result;
 }
