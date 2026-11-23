@@ -1,0 +1,14 @@
+{
+  "Format": "kasane-export",
+  "Version": 1,
+  "Scope": "Keyboard",
+  "Keyboards": [
+    {
+      "Name": "Space を押しながら H J K L で矢印キー",
+      "Layers": [
+        { "Index": 0, "Keys": { "SC_0039": "LT(1, KC_SPC)" } },
+        { "Index": 1, "Keys": { "SC_0023": "KC_LEFT", "SC_0024": "KC_DOWN", "SC_0025": "KC_UP", "SC_0026": "KC_RIGHT" } }
+      ]
+    }
+  ]
+}

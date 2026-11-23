@@ -25,6 +25,8 @@
 
 ## 使い方
 
+Claude Desktop と Muse での登録のしかた、キーの入れ替えやキーの列の出力などの頼み方は、[はじめてのガイド](docs/GETTING-STARTED.md)にあります。以下は、要点だけです。
+
 kasane をインストールした Windows で、MCP クライアントに登録します。
 
 ```json

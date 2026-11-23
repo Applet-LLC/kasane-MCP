@@ -1,0 +1,13 @@
+{
+  "Format": "kasane-export",
+  "Version": 1,
+  "Scope": "Keyboard",
+  "Keyboards": [
+    {
+      "Name": "Caps Lock と左 Ctrl を入れ替える",
+      "Layers": [
+        { "Index": 0, "Keys": { "SC_003A": "KC_LCTL", "SC_001D": "KC_CAPSLOCK" } }
+      ]
+    }
+  ]
+}
