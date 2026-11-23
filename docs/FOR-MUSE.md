@@ -1,5 +1,7 @@
 # kasane-mcp を Muse (muse.ai) に組み込むための手順書
 
+日本語 | [English](FOR-MUSE.en.md)
+
 対象: Meta の Muse エージェント（Linux VM 上で動作）向けの指示書です。
 人間のユーザーが読むためのものではありません。ユーザーは、Muse に、次のように頼みます。
 
