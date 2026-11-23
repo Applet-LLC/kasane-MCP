@@ -26,8 +26,10 @@ kasane-MCP のような、自分のパソコンで動く MCP サーバーを使�
 
 ### 登録する
 
-1. Claude Desktop の設定で「開発者」を開き、設定ファイル（`claude_desktop_config.json`）を編集するボタン（「構成を編集」など）を押します。ボタンの名前は、版によって違うことがあります。ファイルがまだ無いときは、このボタンで作られます。
-2. 設定ファイルは、`%APPDATA%\Claude\claude_desktop_config.json` です。Microsoft Store 版の Claude Desktop では、実際の場所が `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\` の下になります。見つからないときは、手順 1 のボタンから開いてください。メモ帳などで開き、次のように書きます。すでに `mcpServers` がある場合は、その中に `"kasane": { ... }` だけを足します。
+1. `claude_desktop_config.json` を開きます。Claude Desktop のメニューから「開発者」を選び、「アプリ設定ファイルを開く」を選択してください。フォルダー、または登録されているエディタで、`claude_desktop_config.json` が開きます。メニューの名前は、版によって違うことがあります。
+2. 開いたファイルに、`mcpServers` の記述を足します。ファイルの場所は、`%APPDATA%\Claude\claude_desktop_config.json` です。Microsoft Store 版の Claude Desktop では、実際の場所が `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\` の下になります。ファイルの今の中身によって、足し方が違います。
+
+   **ファイルが空、または `{ }` だけのとき**は、全体を次のようにします。
 
    ```json
    {
@@ -39,6 +41,36 @@ kasane-MCP のような、自分のパソコンで動く MCP サーバーを使�
      }
    }
    ```
+
+   **ほかの設定がすでにあって、`mcpServers` が無いとき**は、一番外側の `{ }` の中に、`"mcpServers": { ... }` を、ほかの項目と同じ階層で足します。足す前の項目の最後には、カンマ（`,`）が要ります。次の例の `"preferences"` は、すでにある項目の一例です（実際の項目名は、ファイルによって違います）。
+
+   ```json
+   {
+     "preferences": {
+       "（すでにある設定は、そのまま）": true
+     },
+     "mcpServers": {
+       "kasane": {
+         "command": "npx",
+         "args": ["-y", "kasane-mcp"]
+       }
+     }
+   }
+   ```
+
+   **すでに `mcpServers` があるとき**は、その `{ }` の中に、`"kasane": { ... }` の部分だけを足します。ほかのサーバーの定義の後ろにカンマを付けて、続けて書きます。
+
+   ```json
+   "mcpServers": {
+     "（すでにあるサーバー）": { "command": "..." },
+     "kasane": {
+       "command": "npx",
+       "args": ["-y", "kasane-mcp"]
+     }
+   }
+   ```
+
+   カンマの付け忘れや、括弧の足りなさがあると、Claude Desktop が設定を読めません。保存する前に、`{` と `}` の数が合っているか確かめてください。
 
 3. 保存して、Claude Desktop を完全に終了し（ウィンドウを閉じるだけでなく、タスクトレイからも終了します）、起動し直します。
 4. 新しい会話で、入力欄の近くのツールの一覧に `kasane` が出ていれば、登録できています。
