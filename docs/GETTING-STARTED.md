@@ -14,10 +14,20 @@ kasane は、既定の場所（`C:\Program Files\applet\kasane`）に入って�
 
 ## 例 1: Claude Desktop で使う
 
+### 先に、開発者モードを有効にする
+
+kasane-MCP のような、自分のパソコンで動く MCP サーバーを使うには、Claude Desktop の開発者モードを、先に有効にする必要があります。有効にしていないと、設定に「開発者」が出ません。
+
+開発者モードの有効にしかたは、Claude Desktop の更新で変わることがあります。この文書には書かないので、Claude Desktop に、こう聞いてください。
+
+> Claude Desktop を開発者モードにするにはどうすればよいですか？
+
+案内された手順で、開発者モードを有効にしてから、次に進みます。
+
 ### 登録する
 
-1. Claude Desktop を開き、設定の「開発者」を選び、「構成を編集」を押します。`claude_desktop_config.json` が入ったフォルダーが開きます。設定は、画面内ではなく、システムのメニューバーにある Claude のメニューから開くことがあります。メニューの名前は版によって違うことがあります。
-2. このファイルは、通常 `%APPDATA%\Claude\claude_desktop_config.json` にあります。メモ帳などで開き、次のように書きます。すでに `mcpServers` がある場合は、その中に `"kasane": { ... }` だけを足します。
+1. Claude Desktop の設定で「開発者」を開き、設定ファイル（`claude_desktop_config.json`）を編集するボタン（「構成を編集」など）を押します。ボタンの名前は、版によって違うことがあります。ファイルがまだ無いときは、このボタンで作られます。
+2. 設定ファイルは、`%APPDATA%\Claude\claude_desktop_config.json` です。Microsoft Store 版の Claude Desktop では、実際の場所が `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\` の下になります。見つからないときは、手順 1 のボタンから開いてください。メモ帳などで開き、次のように書きます。すでに `mcpServers` がある場合は、その中に `"kasane": { ... }` だけを足します。
 
    ```json
    {
