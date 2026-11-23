@@ -14,7 +14,8 @@ try {
   console.error("npm pack の出力を読めません:\n" + out.slice(0, 1000));
   process.exit(1);
 }
-const info = Array.isArray(parsed) ? parsed[0] : parsed;
+// 配列（手元の npm）、{ files: [...] }、{ "パッケージ名": { files: [...] } }（CI の npm）の、どれでも読む。
+const info = Array.isArray(parsed) ? parsed[0] : Array.isArray(parsed?.files) ? parsed : Object.values(parsed ?? {})[0];
 if (!info || !Array.isArray(info.files)) {
   console.error("npm pack の出力に files がありません:\n" + out.slice(0, 1000));
   process.exit(1);
