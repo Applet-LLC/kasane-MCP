@@ -1,6 +1,6 @@
 # kasane-MCP を使いはじめる
 
-AI エージェントに「Caps Lock を左 Ctrl にして」と頼むと、kasane の設定ファイルを作ってくれる。そのための設定と、使い方の案内です。Claude Desktop の例と、Meta の Muse の例を載せています。
+AI エージェントに「Caps Lock を左 Ctrl にして」と頼むと、kasane の設定ファイルを作ってくれる。そのための設定と、使い方の案内です。Claude Desktop を例にしています。
 
 **このローカル MCP サーバーは、設定ファイルを作るのみです。** かさねエディタへの設定の反映は、ユーザーによる設定ファイルのインポートで実施できます。エージェントが作るのは、設定ファイル（`*.kasane.json`）だけで、キーボードへの適用は、エディタで、あなた自身が行います。
 
@@ -8,11 +8,11 @@ AI エージェントに「Caps Lock を左 Ctrl にして」と頼むと、kasa
 
 - kasane をインストールして、ライセンスを認証してあること。
 - Node.js 18 以上。`npx` が使えるかは、ターミナルで `node -v` と `npx -v` を打って確かめます。
-- AI エージェント。この文書では、Claude Desktop と Muse Code を扱います。
+- AI エージェント。この文書では、Claude Desktop を扱います。
 
 kasane は、既定の場所（`C:\Program Files\applet\kasane`）に入っていれば、そのまま見つかります。別の場所に入れたときは、後の設定例に `env` を足します（[kasane が見つからないとき](#kasane-が見つからないとき)）。
 
-## 例 1: Claude Desktop で使う
+## Claude Desktop で使う
 
 ### 先に、開発者モードを有効にする
 
@@ -104,41 +104,6 @@ kasane-MCP を有効にした会話で、こう頼みます。ツールの使用
 
 導入されているか、バージョン、接続中のキーボードの数が返ってくれば成功です。「UniqId が 00000000 になっている」と返ってきたときは、ライセンスの認証が済んでいない可能性があります。
 
-## 例 2: Muse で使う
-
-Meta の Muse には、アプリ版と、コーディング用の Muse Code があります。kasane-MCP は、あなたのパソコンで動くプログラムなので、使えるのは Muse Code です。
-
-- **Muse のアプリ版では、使えません。** アプリ版には、MCP サーバーを自分で追加する設定が見当たりません。調べた範囲では、Meta の公式な説明も見つかりませんでした。
-- **Muse Code では、使えます。** Meta の公式ドキュメント（[Extending and automating](https://dev.meta.ai/docs/muse-code/extending)、[Configuration and context](https://dev.meta.ai/docs/muse-code/configuration)）に、設定ファイルで MCP サーバーを登録する方法があります。
-
-ただし、公式ドキュメントには、Windows で動くかどうかが書かれていません。設定ファイルの Windows での場所も、書かれていません。この文書では、動作の確認ができていません。
-
-### 登録する
-
-設定ファイルは、公式ドキュメントでは `~/.config/muse/settings.json` です。ここに、次のように書きます。`schema_version` が無いと、起動時にエラーになります。
-
-```json
-{
-  "schema_version": 1,
-  "mcp_servers": {
-    "kasane": {
-      "transport": "stdio",
-      "command": "npx",
-      "args": ["-y", "kasane-mcp"],
-      "mode": "optional"
-    }
-  }
-}
-```
-
-- キーの名前は `mcp_servers` です。Claude Desktop の `mcpServers` とは、書き方が違います。
-- `mode` を省略すると `required` になり、このサーバーが起動できないときに、Muse Code の実行ごと止まります。`optional` にしておくと、起動できなくても続けられます。
-- Muse Code は、MCP サーバーの動作を、サンドボックスの中に閉じ込めません。kasane-MCP は、読み取りと、設定ファイルの保存しかしませんが、知っておいてください。
-
-登録したら、Muse Code を起動して、次のように頼みます。
-
-> kasane の状態を教えて。
-
 ## 設定を頼む
 
 登録したあとの流れは、どのエージェントでも同じです。ここでは、3 つの頼み方を紹介します。
@@ -209,8 +174,6 @@ kasane を既定の場所以外に入れたときは、登録の設定に `env` 
   "env": { "KASANE_HOME": "D:\\Tools\\applet\\kasane" }
 }
 ```
-
-Muse Code では、`env` を同じ形で足します。
 
 ### ツールが一覧に出ないとき
 
