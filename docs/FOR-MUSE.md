@@ -12,6 +12,7 @@ Claude Desktop の登録方法は、GETTING-STARTED.md にあります（Muse �
 
 ## これは何か
 
+- 入手元は npm 公式レジストリの `kasane-mcp`（発行: Applet LLC）のみです。同名の別パッケージや、他の入手元からはインストールしないでください。
 - kasane（Windows 用キーリマッパー）の MCP サーバー。npm パッケージ `kasane-mcp`、
   stdio 型、Node.js >= 18。
 - ドライバにも kasane の設定にも**書き込みません**。マニュアル参照と、
@@ -43,6 +44,12 @@ npm install --omit=dev
 ```
 
 ## 手順 2: stdio クライアントを用意する
+
+先に、クライアントの置き場所を作ってください。
+
+```sh
+mkdir -p ~/workspace/custom-connectors/custom.kasane-mcp/bin
+```
 
 Muse には MCP サーバー登録 UI がありません。サーバーを子プロセスとして起動し、
 JSON-RPC を stdio でやり取りする小さなクライアントを使ってください。
@@ -90,7 +97,8 @@ else:
 
 ```sh
 python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py list-tools
-# -> tools が 12 個返ること
+# -> tools が 12 個返ること（0.1.8時点。将来の版で増減した場合は、
+#     その版の個数を正とし、減っている場合のみ異常として報告すること）
 
 python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool \
   --name kasane_mcp_version --arguments '{}'
@@ -103,9 +111,32 @@ python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool 
 
 ## 手順 4: 記録を残す
 
-`~/workspace/custom-connectors/custom.kasane-mcp/CONNECTOR.md` に、
-インストール先、クライアントの使い方、VM で使える／使えないツールの区別を
-記録してください。次回以降の会話では、この記録を読んでから kasane の作業をしてください。
+`~/workspace/custom-connectors/custom.kasane-mcp/CONNECTOR.md` に、以下の雛形で記録してください。
+次回以降の会話では、この記録を読んでから kasane の作業をしてください。
+
+```markdown
+# kasane-mcp connector (Muse VM)
+
+- インストール先: ~/workspace/custom-connectors/custom.kasane-mcp/server/
+- インストールした版: <手順3で kasane_mcp_version が返した版>
+- クライアント: ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py
+  - 一覧: python3 <クライアント> list-tools
+  - 呼び出し: python3 <クライアント> call-tool --name <ツール名> --arguments '<JSON>'
+
+## VM で使えるツール
+kasane_mcp_version / kasane_search_keycodes / kasane_get_file_format /
+kasane_validate_keymap / kasane_create_keymap_file /
+kasane_get_output_settings / kasane_status（kasane 未検出として返る）
+
+## VM では使えないツール（kasane 本体が Windows 側にあるため）
+kasane_search_docs / kasane_list_devices / kasane_get_keymap /
+kasane_get_layer_state / kasane_get_settings
+
+## 注意
+- このサーバーはドライバにも kasane の設定にも書き込まない。
+- 作った *.kasane.json は、ファイル自体をユーザーに渡すこと。
+  反映はユーザーが Windows の kasane エディタからインポートする。
+```
 
 ## 導入後の使い方
 
