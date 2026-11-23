@@ -8,6 +8,8 @@ import { renderFormat } from "./keymap/format.js";
 
 const FORMAT_URI = "kasane-doc://format/kasane-export";
 import { EMERGENCY_NOTE, createKeymapFile, importSteps } from "./keymap/write.js";
+import { ALLOW_ENV, outputSettings, resolveDestination } from "./keymap/output.js";
+import { NAME, VERSION } from "./version.js";
 
 type Content = { content: Array<{ type: "text"; text: string }>; isError?: boolean };
 
@@ -74,6 +76,9 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
         keymapToolFound: tool.exe !== null,
         keymapToolPath: tool.exe,
         kasaneVersion: kasaneVersion(docs),
+        kasaneMcpVersion: VERSION,
+        kasaneDataDir: outputSettings().kasaneDataDir,
+        outputDir: outputSettings().defaultDir,
       };
       if (!tool.exe) next.push("kasane をインストールするか、環境変数 KASANE_HOME にインストール先を設定してください。");
       else {
@@ -178,6 +183,42 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
   );
 
   server.registerTool(
+    "kasane_mcp_version",
+    {
+      title: "kasane-MCP のバージョン",
+      description: "kasane-MCP 自身（このサーバー）のバージョンを返す。kasane 本体のバージョンは、kasane_status が返す。「kasane-MCP のバージョンは？」と聞かれたら、これを使う。読み取り専用。",
+      inputSchema: {},
+      annotations: RO,
+    },
+    () => json({ name: NAME, version: VERSION, kasaneVersion: kasaneVersion(docs) }),
+  );
+
+  server.registerTool(
+    "kasane_get_output_settings",
+    {
+      title: "設定ファイルの保存先",
+      description:
+        "設定ファイルの保存先を返す: 既定の保存先、環境変数 KASANE（kasane の設定フォルダー）の値、KASANE への保存をユーザーが許可しているか。KASANE への保存は、許可されていないと使えない。許可されていないときは、ユーザーに伝える設定の書き方も返す。読み取り専用。",
+      inputSchema: {},
+      annotations: RO,
+    },
+    () => {
+      const s = outputSettings();
+      return json({
+        defaultDir: s.defaultDir,
+        kasaneEnv: s.kasaneEnv,
+        kasaneUsable: s.kasaneUsable,
+        kasaneDataDir: s.kasaneDataDir,
+        kasaneOutputDir: s.kasaneOutputDir,
+        kasaneAllowed: s.kasaneAllowed,
+        note: s.kasaneAllowed
+          ? 'destination="kasane" で、kasaneOutputDir に保存できる（kasaneUsable が true のとき）。'
+          : `KASANE への保存は、許可されていない。許可するには、ユーザーが MCP の設定の kasane の項目に "env": { "${ALLOW_ENV}": "1" } を書いて、アプリを起動し直す。`,
+      });
+    },
+  );
+
+  server.registerTool(
     "kasane_get_file_format",
     {
       title: "設定ファイルの書式",
@@ -217,11 +258,17 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
       inputSchema: {
         keymap: z.union([z.string(), z.record(z.unknown())]).describe("*.kasane.json の中身（JSON の文字列、またはオブジェクト）"),
         name: z.string().max(60).optional().describe("ファイル名に入れる短い名前（例: capslock-to-ctrl）。省略可"),
+        destination: z
+          .enum(["default", "kasane"])
+          .optional()
+          .describe("保存先。省略すると default（ドキュメント\\kasane-mcp）。kasane は、kasane の設定フォルダー（環境変数 KASANE）の下の kasane-mcp フォルダー。ユーザーが MCP の設定で許可しているときだけ使える（許可の状態は kasane_get_output_settings で確かめる）。ユーザーに頼まれたとき以外は、省略する"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
-    ({ keymap, name }) => {
-      const r = createKeymapFile(keymap, { name });
+    ({ keymap, name, destination }) => {
+      const dest = resolveDestination(destination);
+      if (!dest.ok) return failure(dest.message);
+      const r = createKeymapFile(keymap, { name, dir: dest.dir });
       if (!r.ok && r.reason === "invalid") {
         return { isError: true, content: [{ type: "text" as const, text: JSON.stringify({ saved: false, message: "検証でエラーが見つかったため、ファイルは作っていません。直してから、もう一度呼んでください。", errors: r.validation.errors, warnings: r.validation.warnings, hint: r.validation.hint }, null, 2) }] };
       }
@@ -229,6 +276,7 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
       return json({
         saved: true,
         path: r.path,
+        destination: dest.destination,
         summary: r.validation.summary,
         warnings: r.validation.warnings,
         stepsForUser: importSteps(r.path),

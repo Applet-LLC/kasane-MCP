@@ -9,6 +9,7 @@ import { DocsIndex } from "./docs/index.js";
 import { registerDocs } from "./docs/register.js";
 import { registerPrompts } from "./prompts.js";
 import { registerTools } from "./tools.js";
+import { NAME, VERSION } from "./version.js";
 import { KeymapTool, locateKeymapTool } from "./adapters/keymaptool.js";
 
 async function main(): Promise<void> {
@@ -16,7 +17,7 @@ async function main(): Promise<void> {
   if (docs.pages.length === 0) {
     process.stderr.write("kasane-mcp: kasane のマニュアルが見つかりません（KASANE_HOME を設定するか、kasane をインストールしてください）。\n");
   }
-  const server = new McpServer({ name: "kasane-mcp", version: "0.1.4" });
+  const server = new McpServer({ name: NAME, version: VERSION });
   registerDocs(server, docs);
   registerTools(server, docs, new KeymapTool(locateKeymapTool(docs.location.home)));
   registerPrompts(server);

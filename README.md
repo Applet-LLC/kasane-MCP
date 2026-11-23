@@ -4,14 +4,16 @@
 
 **このサーバーは、ドライバにも kasane の設定にも書き込みません。** 設定の反映は、ユーザーが kasane のエディタで行います。
 
-状態: v0.1.4（ドキュメント参照、読み取りツール、設定ファイルの生成）。
+状態: v0.1.5（ドキュメント参照、読み取りツール、設定ファイルの生成）。
 
 ## 提供するもの
 
 | 種類 | 名前 | 内容 |
 |---|---|---|
 | ツール | `kasane_search_docs` | マニュアルと CLI チュートリアルを検索し、節の抜粋と URI を返す |
-| ツール | `kasane_status` | 導入状況（KeymapTool、マニュアル、バージョン、キーボード数、ライセンスの兆候）と、次にやること |
+| ツール | `kasane_status` | 導入状況（KeymapTool、マニュアル、kasane と kasane-MCP のバージョン、キーボード数、ライセンスの兆候）と、次にやること |
+| ツール | `kasane_mcp_version` | kasane-MCP 自身のバージョン |
+| ツール | `kasane_get_output_settings` | 設定ファイルの保存先（既定、環境変数 `KASANE`、`KASANE` への保存の許可の有無） |
 | ツール | `kasane_list_devices` | 接続中のキーボードの一覧（UniqId など） |
 | ツール | `kasane_get_keymap` | キーボードに今読み込まれているキーマップ（リマップされたキーだけ。`all` で全部） |
 | ツール | `kasane_get_layer_state` | 有効なレイヤー、リマップの ON/OFF、NICOLA |
@@ -19,7 +21,7 @@
 | ツール | `kasane_search_keycodes` | `KC_*` のキーコードを、名前の一部やスキャンコードで探す |
 | ツール | `kasane_get_file_format` | 設定ファイル（`*.kasane.json`）の書式の説明と、動く例を返す。ファイルを書く前に呼ぶ |
 | ツール | `kasane_validate_keymap` | `*.kasane.json` を、設定に触れずに点検する（キーコード、番号の範囲、重複、存在しないレイヤーへの参照、電源キーの警告） |
-| ツール | `kasane_create_keymap_file` | 検証に通った設定を、`*.kasane.json` として新しいファイルに保存する。反映の手順を返す |
+| ツール | `kasane_create_keymap_file` | 検証に通った設定を、`*.kasane.json` として新しいファイルに保存する。反映の手順を返す。保存先は `destination` で選べる（`KASANE` は許可が要る） |
 | リソース | `kasane-doc://manual/ja/{page}` | マニュアル（日本語）のページ全文 |
 | リソース | `kasane-doc://format/kasane-export` | 設定ファイルの書式の説明と例（`kasane_get_file_format` と同じ） |
 | リソース | `kasane-doc://cli-tutorial` | KeymapTool（CLI）のチュートリアル |
@@ -60,6 +62,22 @@ kasane をインストールした Windows で、MCP クライアントに登録
 5. 「キーボードに適用(ON)」を押す。
 
 作ったファイルは、エディタの読み込みコード（`PortableIO` と `PortableImporter`）に通して、読み込めることを確認しています。保存のときは、上書きせず、出力フォルダの外にも書きません。
+
+## 設定ファイルの保存先
+
+- **既定**は、`ドキュメント\kasane-mcp\` です。環境変数 `KASANE_MCP_OUTPUT_DIR` で、別のフォルダーにできます。
+- **kasane の設定フォルダー**（環境変数 `KASANE`）の下の `kasane-mcp\` にも、保存できます。エディタの書き出しと読み込みの画面は、設定フォルダーを既定にするので、見つけやすくなります。ただし、**ユーザーが許可したときだけ**使えます。MCP の設定の kasane の項目に、`env` を足してください。許可は、エージェントからは変えられません。
+
+  ```json
+  "kasane": {
+    "command": "npx",
+    "args": ["-y", "kasane-mcp"],
+    "env": { "KASANE_MCP_ALLOW_KASANE_DIR": "1" }
+  }
+  ```
+
+  許可すると、エージェントが `kasane_create_keymap_file` の `destination` に `kasane` を指定したときだけ、`KASANE\kasane-mcp\` に保存します。指定しなければ、既定の保存先です。`KASANE` が未設定、絶対パスでない、実在しないフォルダーのときは、保存しません。設定フォルダーを新しく作ることもしません。
+- ファイル名は、必ず `kasane-mcp-` で始まります。kasane が自動で読む `kasane-import.json` と `kasane-recovery.kasane.json` には、決して書きません。設定フォルダーの `project.json` などにも、触りません。
 
 ## 安全の仕組み
 
