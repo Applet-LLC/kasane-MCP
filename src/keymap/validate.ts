@@ -69,6 +69,16 @@ export function validateKeymap(input: unknown): ValidationResult {
     return r;
   };
 
+  // エディタが、置ける場所ごとに受け付ける範囲（kasane の ProjectService.cs と同じ）。
+  const TAP_KINDS = ["none", "key", "modded", "macro"];
+  const HOLD_KINDS = ["none", "key", "modded", "mod-tap", "layer-tap", "macro"];
+  /** 場所ごとの制約を点検する。許されない種類なら、エラーにする。 */
+  const restrict = (path: string, r: TokenResult | undefined, allowed: (r: TokenResult) => boolean, what: string) => {
+    if (r && !allowed(r)) err(path, `ここには置けません。${what}にしてください（エディタが、読み込み後の適用で断ります）`);
+  };
+  const tapOk = (r: TokenResult) => TAP_KINDS.includes(r.kind ?? "");
+  const holdOk = (r: TokenResult) => HOLD_KINDS.includes(r.kind ?? "") || r.fn === "LM";
+
   doc.Keyboards.forEach((kb: unknown, ki: number) => {
     const kp = `Keyboards[${ki}]`;
     if (!isObj(kb)) return err(kp, "オブジェクトにしてください");
@@ -128,7 +138,10 @@ export function validateKeymap(input: unknown): ValidationResult {
     idList("Macros", MAX_MACROS, macroIds, (e, p) => {
       if (!Array.isArray(e.Keys)) return err(`${p}.Keys`, "キーコードの配列にしてください");
       if (e.Keys.length === 0) warn(`${p}.Keys`, "中身が空のマクロです");
-      e.Keys.forEach((k: unknown, i: number) => checkTok(`${p}.Keys[${i}]`, k));
+      e.Keys.forEach((k: unknown, i: number) => {
+        const r = checkTok(`${p}.Keys[${i}]`, k);
+        restrict(`${p}.Keys[${i}]`, r, (x) => x.kind === "key" || x.kind === "modded", "キー（KC_*）か、修飾付きキー（LCTL(KC_C) など）");
+      });
     }, () => summary.macros++);
 
     const comboIds = new Set<number>();
@@ -138,17 +151,26 @@ export function validateKeymap(input: unknown): ValidationResult {
         if (typeof e[f] !== "string" || parseRawScanCode(e[f] as string) === null) err(`${p}.${f}`, "コンボのキーは SC_XXXX（16進4桁。例: SC_0024）で書きます。KC_ の名前は使えません");
       }
       if (e.Key1 !== undefined && e.Key1 === e.Key2) err(`${p}.Key2`, "コンボの2つのキーは、別のキーにしてください");
-      note(`${p}.Output`, checkTok(`${p}.Output`, e.Output));
+      const out = checkTok(`${p}.Output`, e.Output);
+      restrict(`${p}.Output`, out, (x) => x.kind === "key" || x.kind === "modded" || x.kind === "macro", "キー（KC_*）、修飾付きキー（LCTL(KC_Z) など）、MACRO(n) のどれか");
+      note(`${p}.Output`, out);
     }, () => summary.combos++);
 
     idList("TapDances", MAX_TAPDANCES, tdIds, (e, p) => {
-      for (const f of ["SingleTap", "SingleHold", "DoubleTap", "TripleTap"]) note(`${p}.${f}`, checkTok(`${p}.${f}`, e[f] ?? "", { allowEmpty: true }));
+      for (const f of ["SingleTap", "SingleHold", "DoubleTap", "TripleTap"]) {
+        const r = checkTok(`${p}.${f}`, e[f] ?? "", { allowEmpty: true });
+        if (f === "SingleHold") restrict(`${p}.${f}`, r, holdOk, "キー（KC_*）、MT(mod,kc)、LT(layer,kc)、修飾付きキー、LM(layer,mod)、MACRO(n)、空欄のどれか。MO(n) などは使えません");
+        else restrict(`${p}.${f}`, r, tapOk, "キー（KC_*）、修飾付きキー（LCTL(KC_C) など）、MACRO(n)、空欄のどれか");
+        note(`${p}.${f}`, r);
+      }
     }, () => summary.tapDances++);
 
     idList("KeyOverrides", MAX_KEY_OVERRIDES, new Set(), (e, p) => {
       if (typeof e.Mods !== "string" || !checkModMask(e.Mods)) err(`${p}.Mods`, "MOD_LSFT や MOD_LCTL|MOD_LSFT の形にしてください");
-      checkTok(`${p}.Key`, e.Key);
-      note(`${p}.Replacement`, checkTok(`${p}.Replacement`, e.Replacement));
+      restrict(`${p}.Key`, checkTok(`${p}.Key`, e.Key), (x) => x.kind === "key", "単純なキー（KC_*）");
+      const rep = checkTok(`${p}.Replacement`, e.Replacement);
+      restrict(`${p}.Replacement`, rep, (x) => ["key", "modded", "macro", "helper", "mark"].includes(x.kind ?? "") || ["OSL", "TG", "TO", "DF"].includes(x.fn ?? ""), "キー（KC_*）、修飾付きキー、MACRO(n)、OSL/TG/TO/DF(n)、HLP(n)、MARK(...) のどれか");
+      note(`${p}.Replacement`, rep);
     }, () => summary.keyOverrides++);
 
     if (Array.isArray(kb.Layers) && kb.Layers.length > 0) {

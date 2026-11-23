@@ -86,10 +86,10 @@ kasane_create_keymap_file と kasane_validate_keymap に渡す設定の形です
   - Keys のキー（左側）は、押す物理キーの位置を表すスキャンコード SC_XXXX（16 進 4 桁）。右側は割り当てる動作。
   - レイヤー 0 が基本のレイヤー。変えたいキーだけを書く（書かないキーは、そのまま）。透過（KC_TRNS）は書かない。
   - Index が重複してはいけない。MO(1) などで使うレイヤーは、Layers に含める。
-- Macros: [{ "Id": 0〜127, "Keys": ["KC_H", "KC_I", "LCTL(KC_C)"] }]。キーを順に打つ。1 つにつき 64 ステップまで（キー 1 つで 2 ステップ、修飾 1 つにつきさらに 2）。日本語の文字は入れられない（ローマ字のキーで書く）。
-- Combos: [{ "Id": 0〜15, "Key1": "SC_0024", "Key2": "SC_0025", "Output": "KC_ESC" }]。2 つのキーの同時押し。Key1 と Key2 は、KC_ ではなく SC_XXXX で書く。
-- TapDances: [{ "Id": 0〜15, "SingleTap": "KC_A", "SingleHold": "", "DoubleTap": "KC_B", "TripleTap": "" }]。使わない欄は "" にする。
-- KeyOverrides: [{ "Id": 0〜127, "Mods": "MOD_LCTL", "Key": "KC_1", "Replacement": "MACRO(0)" }]。Mods は MOD_LSFT、MOD_LCTL|MOD_LSFT のように書く。Key は、レイヤーで解決した後の出力キー。
+- Macros: [{ "Id": 0〜127, "Keys": ["KC_H", "KC_I", "LCTL(KC_C)"] }]。キーを順に打つ。1 つにつき 64 ステップまで（キー 1 つで 2 ステップ、修飾 1 つにつきさらに 2）。日本語の文字は入れられない（ローマ字のキーで書く）。中身に置けるのは、キー（KC_*）と修飾付きキー（LCTL(KC_C) など）だけ。
+- Combos: [{ "Id": 0〜15, "Key1": "SC_0024", "Key2": "SC_0025", "Output": "KC_ESC" }]。2 つのキーの同時押し。Key1 と Key2 は、KC_ ではなく SC_XXXX で書く。Output に置けるのは、キー（KC_*）、修飾付きキー、MACRO(n) だけ。
+- TapDances: [{ "Id": 0〜15, "SingleTap": "KC_A", "SingleHold": "", "DoubleTap": "KC_B", "TripleTap": "" }]。使わない欄は "" にする。置ける動作は欄ごとに違う。SingleTap・DoubleTap・TripleTap は、キー（KC_*）、修飾付きキー、MACRO(n)、空欄だけ。SingleHold（長押し）は、それらに加えて MT(mod,kc)、LT(layer,kc)、LM(layer,mod) も置ける。**MO(n)、TG(n)、OSL(n) などは、長押しにも置けない**（エディタが適用のときに断る）。長押しの間だけレイヤーを切り替えたいときは、LT(layer,kc) を使う。
+- KeyOverrides: [{ "Id": 0〜127, "Mods": "MOD_LCTL", "Key": "KC_1", "Replacement": "MACRO(0)" }]。Mods は MOD_LSFT、MOD_LCTL|MOD_LSFT のように書く。Key は、レイヤーで解決した後の出力キー（単純な KC_* だけ）。Replacement に置けるのは、キー、修飾付きキー、MACRO(n)、OSL/TG/TO/DF(n)、HLP(n)、MARK(...) だけ。MO(n)、LM、OSM、MT、LT は置けない。
 - MacroNames / ComboNames / TapDanceNames / KeyOverrideNames: { "0": "名前" }（任意）。
 - Timing、EnabledFeatures、Nicola、Helper など、ほかの項目もあるが、この MCP は検証しない。書かない。
 

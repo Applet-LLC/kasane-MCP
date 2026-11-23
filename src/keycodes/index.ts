@@ -27,6 +27,8 @@ export interface TokenResult {
   tapDanceId?: number;
   /** 切り替え先のレイヤー番号（MO / TG / LT など）。 */
   layerRef?: number;
+  /** MO / LM / OSL など、関数の形のときの関数名（修飾付きキー LCTL(...) などは含まない）。 */
+  fn?: string;
   error?: string;
 }
 
@@ -62,6 +64,15 @@ function fail(error: string): TokenResult {
 
 /** キーコードの文字列（KC_A、MO(1)、LCTL(KC_C) など）が、kasane で使える形かを調べる。 */
 export function checkToken(raw: string): TokenResult {
+  const r = checkTokenInner(raw);
+  if (r.ok && r.kind !== "modded") {
+    const c = splitCall(raw.trim());
+    if (c) r.fn = c.name;
+  }
+  return r;
+}
+
+function checkTokenInner(raw: string): TokenResult {
   const token = raw.trim();
   if (token === "") return fail("空です");
   if (token === "KC_TRNS" || token === "_______" || token === "KC_TRANSPARENT") return { ok: true, kind: "transparent", baseKeys: [] };
