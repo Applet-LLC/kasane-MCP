@@ -207,6 +207,7 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
       return json({
         defaultDir: s.defaultDir,
         kasaneEnv: s.kasaneEnv,
+        kasaneEnvSource: s.kasaneEnvSource,
         kasaneUsable: s.kasaneUsable,
         kasaneDataDir: s.kasaneDataDir,
         kasaneOutputDir: s.kasaneOutputDir,

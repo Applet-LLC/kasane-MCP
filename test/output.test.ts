@@ -3,13 +3,14 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSyn
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ALLOW_ENV, outputSettings, resolveDestination } from "../src/keymap/output.js";
+import { ALLOW_ENV, outputSettings, readKasaneFromRegistry, resolveDestination } from "../src/keymap/output.js";
 import { createKeymapFile } from "../src/keymap/write.js";
 import { NAME, VERSION } from "../src/version.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const good = () => ({ Format: "kasane-export", Version: 1, Scope: "Keyboard", Keyboards: [{ Layers: [{ Index: 0, Keys: { SC_003A: "KC_LCTL" } }] }] });
 
+const none = () => null;
 let kasane: string;
 let docs: string;
 const env = (extra: Record<string, string | undefined> = {}): NodeJS.ProcessEnv => ({ LOCALAPPDATA: "C:\\Users\\x\\AppData\\Local", KASANE_MCP_OUTPUT_DIR: docs, ...extra });
@@ -34,7 +35,7 @@ describe("バージョン", () => {
 
 describe("outputSettings", () => {
   it("KASANE が無ければ、既定の保存先だけ。設定フォルダーは LOCALAPPDATA の下", () => {
-    const s = outputSettings(env());
+    const s = outputSettings(env(), none);
     expect(s.defaultDir).toBe(docs);
     expect(s.kasaneEnv).toBeNull();
     expect(s.kasaneUsable).toBe(false);
@@ -42,7 +43,7 @@ describe("outputSettings", () => {
     expect(s.kasaneDataDir).toBe(path.join("C:\\Users\\x\\AppData\\Local", "applet", "kasane"));
   });
   it("KASANE があれば、その値を返し、出力先は KASANE\\kasane-mcp", () => {
-    const s = outputSettings(env({ KASANE: kasane }));
+    const s = outputSettings(env({ KASANE: kasane }), none);
     expect(s.kasaneEnv).toBe(kasane);
     expect(s.kasaneUsable).toBe(true);
     expect(s.kasaneOutputDir).toBe(path.join(kasane, "kasane-mcp"));
@@ -50,24 +51,24 @@ describe("outputSettings", () => {
     expect(s.kasaneAllowed).toBe(false);
   });
   it("前後の二重引用符と空白を外す", () => {
-    expect(outputSettings(env({ KASANE: ` "${kasane}" ` })).kasaneEnv).toBe(kasane);
+    expect(outputSettings(env({ KASANE: ` "${kasane}" ` }), none).kasaneEnv).toBe(kasane);
   });
   it("絶対パスでない、または実在しない KASANE は、使えない", () => {
-    expect(outputSettings(env({ KASANE: "relative\\dir" })).kasaneUsable).toBe(false);
-    expect(outputSettings(env({ KASANE: path.join(kasane, "nope") })).kasaneUsable).toBe(false);
+    expect(outputSettings(env({ KASANE: "relative\\dir" }), none).kasaneUsable).toBe(false);
+    expect(outputSettings(env({ KASANE: path.join(kasane, "nope") }), none).kasaneUsable).toBe(false);
     const file = path.join(kasane, "f.txt");
     writeFileSync(file, "x");
-    expect(outputSettings(env({ KASANE: file })).kasaneUsable).toBe(false);
+    expect(outputSettings(env({ KASANE: file }), none).kasaneUsable).toBe(false);
   });
 });
 
 describe("resolveDestination", () => {
   it("省略・default は、既定の保存先", () => {
-    expect(resolveDestination(undefined, env({ KASANE: kasane }))).toEqual({ ok: true, dir: docs, destination: "default" });
-    expect(resolveDestination("default", env())).toMatchObject({ ok: true, dir: docs });
+    expect(resolveDestination(undefined, env({ KASANE: kasane }), none)).toEqual({ ok: true, dir: docs, destination: "default" });
+    expect(resolveDestination("default", env(), none)).toMatchObject({ ok: true, dir: docs });
   });
   it("許可が無ければ、KASANE は断る。断る文面に、設定の書き方が入る", () => {
-    const r = resolveDestination("kasane", env({ KASANE: kasane }));
+    const r = resolveDestination("kasane", env({ KASANE: kasane }), none);
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.message).toContain(ALLOW_ENV);
@@ -75,15 +76,15 @@ describe("resolveDestination", () => {
     }
   });
   it("許可は、値が 1 のときだけ（true や yes は許可にならない）", () => {
-    for (const v of ["0", "true", "yes", "", " 1"]) expect(resolveDestination("kasane", env({ KASANE: kasane, [ALLOW_ENV]: v })).ok).toBe(false);
+    for (const v of ["0", "true", "yes", "", " 1"]) expect(resolveDestination("kasane", env({ KASANE: kasane, [ALLOW_ENV]: v }), none).ok).toBe(false);
   });
   it("許可があって KASANE が使えるときは、KASANE\\kasane-mcp", () => {
-    expect(resolveDestination("kasane", env({ KASANE: kasane, [ALLOW_ENV]: "1" }))).toEqual({ ok: true, dir: path.join(kasane, "kasane-mcp"), destination: "kasane" });
+    expect(resolveDestination("kasane", env({ KASANE: kasane, [ALLOW_ENV]: "1" }), none)).toEqual({ ok: true, dir: path.join(kasane, "kasane-mcp"), destination: "kasane" });
   });
   it("許可があっても、KASANE が未設定・実在しないときは断る（フォルダーは作らない）", () => {
-    expect(resolveDestination("kasane", env({ [ALLOW_ENV]: "1" })).ok).toBe(false);
+    expect(resolveDestination("kasane", env({ [ALLOW_ENV]: "1" }), none).ok).toBe(false);
     const missing = path.join(kasane, "nope");
-    const r = resolveDestination("kasane", env({ KASANE: missing, [ALLOW_ENV]: "1" }));
+    const r = resolveDestination("kasane", env({ KASANE: missing, [ALLOW_ENV]: "1" }), none);
     expect(r.ok).toBe(false);
     expect(readdirSync(kasane)).toEqual([]);
   });
@@ -93,7 +94,7 @@ describe("KASANE への保存", () => {
   it("サブフォルダーに保存し、設定フォルダーの既存のファイルには触れない", () => {
     writeFileSync(path.join(kasane, "project.json"), "KEEP");
     mkdirSync(path.join(kasane, "backup"));
-    const dest = resolveDestination("kasane", env({ KASANE: kasane, [ALLOW_ENV]: "1" }));
+    const dest = resolveDestination("kasane", env({ KASANE: kasane, [ALLOW_ENV]: "1" }), none);
     expect(dest.ok).toBe(true);
     if (!dest.ok) return;
     const r = createKeymapFile(good(), { dir: dest.dir, name: "t" });
@@ -114,5 +115,39 @@ describe("KASANE への保存", () => {
       }
     }
     expect(readdirSync(docs).every((f) => f.startsWith("kasane-mcp-"))).toBe(true);
+  });
+});
+
+describe("KASANE をレジストリから読む（クライアントが環境変数を絞るとき）", () => {
+  it("プロセスの環境変数に無ければ、レジストリの値を使い、取得元を返す", () => {
+    const s = outputSettings(env(), () => kasane);
+    expect(s.kasaneEnv).toBe(kasane);
+    expect(s.kasaneEnvSource).toBe("registry");
+    expect(s.kasaneUsable).toBe(true);
+    expect(s.kasaneDataDir).toBe(kasane);
+  });
+  it("プロセスの環境変数があれば、そちらを優先し、レジストリは読まない", () => {
+    let called = false;
+    const s = outputSettings(env({ KASANE: kasane }), () => {
+      called = true;
+      return "C:\other";
+    });
+    expect(s.kasaneEnv).toBe(kasane);
+    expect(s.kasaneEnvSource).toBe("process");
+    expect(called).toBe(false);
+  });
+  it("どちらにも無ければ、null", () => {
+    const s = outputSettings(env(), none);
+    expect(s.kasaneEnv).toBeNull();
+    expect(s.kasaneEnvSource).toBeNull();
+  });
+  it("レジストリの値でも、許可と実在の確認は同じ", () => {
+    expect(resolveDestination("kasane", env(), () => kasane).ok).toBe(false); // 許可なし
+    expect(resolveDestination("kasane", env({ [ALLOW_ENV]: "1" }), () => kasane)).toMatchObject({ ok: true, dir: path.join(kasane, "kasane-mcp") });
+    expect(resolveDestination("kasane", env({ [ALLOW_ENV]: "1" }), () => path.join(kasane, "nope")).ok).toBe(false);
+  });
+  it.skipIf(process.platform !== "win32")("実際のレジストリの読み取りが、例外にならない（値があれば文字列、無ければ null）", () => {
+    const v = readKasaneFromRegistry(process.env);
+    expect(v === null || typeof v === "string").toBe(true);
   });
 });
