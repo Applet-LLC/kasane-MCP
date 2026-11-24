@@ -45,7 +45,7 @@ kasane をインストールした Windows で、MCP クライアントに登録
 }
 ```
 
-kasane が入っていない環境（Linux や macOS、クラウド側の AI の VM など）でも、起動できます。使えるのは、キーコードの検索、書式の説明、設定ファイルの検証と作成です。マニュアルの検索と、キーボードの読み取りは、kasane が入った Windows でだけ動きます。作ったファイルは、その環境の中にできるので、ユーザーが自分のパソコンに持ってきて、エディタで読み込みます。Muse（muse.ai）に、自分の VM へ入れてもらう手順書は、[docs/FOR-MUSE.md](docs/FOR-MUSE.md) です。
+kasane が入っていない環境（Linux や macOS、クラウド側の AI の VM など）でも、起動できます。使えるのは、キーコードの検索、書式の説明、設定ファイルの検証と作成です。キーボードの読み取りは、kasane が入った Windows でだけ動きます。マニュアルの検索は、公式の Web 版マニュアルの写しを置き、環境変数 `KASANE_HOME` で指せば、動きます。作ったファイルは、その環境の中にできるので、ユーザーが自分のパソコンに持ってきて、エディタで読み込みます。Muse（muse.ai）に、自分の VM へ入れてもらう手順書は、[docs/FOR-MUSE.md](docs/FOR-MUSE.md) です。
 
 （npm への公開前は、リポジトリを clone して `npm install && npm run build` のあと、`node dist/index.js` を指定してください。）
 

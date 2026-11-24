@@ -21,11 +21,14 @@ Claude Desktop の登録方法は、GETTING-STARTED.md にあります（Muse �
   設定ファイル（*.kasane.json）の生成・検証だけを行います。
 - Muse の VM には kasane 本体（Windows）が無いため、以下のツールは使えません。
   使えないことをユーザーに正直に伝えてください。動くふりをしないでください。
-  - 使えない: `kasane_search_docs`、`kasane_list_docs`、`kasane_read_doc`、`kasane_list_devices`、`kasane_get_keymap`、
+  - 使えない: `kasane_list_devices`、`kasane_get_keymap`、
     `kasane_get_layer_state`、`kasane_get_settings`
   - 使える: `kasane_mcp_version`、`kasane_search_keycodes`、`kasane_get_file_format`、
     `kasane_validate_keymap`、`kasane_create_keymap_file`、`kasane_get_output_settings`、
     `kasane_status`（kasane 未検出として正常に返る）
+  - 手順 2.5 のマニュアルミラーを置けば使える: `kasane_search_docs`、
+    `kasane_list_docs`、`kasane_read_doc`
+    （読むのは Web 版マニュアルの写しです。手順 2.5 の注意を読んでください）
 - 作ったファイルは、VM の中にできます。ユーザーが自分のパソコンで読み込めるように、
   ファイル自体をユーザーに渡してください。
 
@@ -95,6 +98,41 @@ else:
     print(json.dumps(r.get(2, {}).get("result", r.get(2, {})), ensure_ascii=False, indent=2))
 ```
 
+## 手順 2.5: マニュアルのミラーを置く（ドキュメント系ツール用）
+
+このサーバーは、マニュアルを「環境変数 KASANE_HOME が指す場所の `manual/ja/*.html`（英語は `manual/en/*.html`）」から読みます。
+VM からはユーザーのパソコンの `C:\Program Files\applet\kasane\manual` には届かないので、
+公式の Web 版マニュアルの写しを VM の中に置き、KASANE_HOME で指します。
+
+取得元は、公式の Web 版マニュアルのみです: https://appletllc.com/web/kasane-doc/ （日本語は `ja/`、英語は `en/`）
+
+```sh
+for L in ja en; do
+  DEST=~/workspace/custom-connectors/custom.kasane-mcp/kasane-home/manual/$L
+  mkdir -p "$DEST" && cd "$DEST"
+  curl -sL "https://appletllc.com/web/kasane-doc/$L/index.html" -o index.html
+  for f in $(grep -o 'href="[^"]*\.html"' index.html | sed 's/href="//;s/"//' | grep -v '^\.\.' | sort -u); do
+    [ "$f" = "index.html" ] && continue
+    curl -sL "https://appletllc.com/web/kasane-doc/$L/$f" -o "$f"
+  done
+  ls *.html
+done
+```
+
+ファイルの一覧は、index.html のリンクから作っています。章が増減しても、そのまま使えます（現在は、言語ごとに、index.html を含めて 21 ファイル）。
+
+次に、手順 2 で作った client.py に、KASANE_HOME の既定値を足してください（`ENTRY = ...` の行の直後に入れます。環境変数で明示した場合は、そちらが優先されます）。
+
+```python
+os.environ.setdefault("KASANE_HOME", os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "kasane-home")))
+```
+
+注意（ユーザーへの報告で間違えないこと）:
+
+- これは Web 版マニュアルの**写し（スナップショット）**です。内容の版は Web 版のもので、ユーザーのパソコンに入っている kasane の版とずれることがあります。マニュアルが更新されたら、上の取得コマンドを再実行して、取り直してください。
+- この設定をすると、`kasane_status` の kasaneVersion が、マニュアル表紙の版（現在は 1.02）を返すようになります。これはマニュアルからの検出です。**kasane 本体が VM に入ったわけではありません。** keymapToolFound は false のままで、`kasane_list_devices`、`kasane_get_keymap`、`kasane_get_layer_state`、`kasane_get_settings` は、引き続き使えません。
+
 ## 手順 3: 検証する（すべて通ってから「導入できた」と伝える）
 
 ```sh
@@ -109,6 +147,18 @@ python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool 
 python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool \
   --name kasane_search_keycodes --arguments '{"query":"KC_ESC"}'
 # -> KC_ESCAPE / SC_0001 が返ること
+```
+
+手順 2.5 を実施した場合は、次も確認してください。
+
+```sh
+python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool \
+  --name kasane_status --arguments '{}'
+# -> "docsFound": true になること
+
+python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool \
+  --name kasane_list_docs --arguments '{}'
+# -> マニュアルのページ一覧が返ること
 ```
 
 ## 手順 4: 記録を残す
@@ -129,10 +179,20 @@ python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool 
 kasane_mcp_version / kasane_search_keycodes / kasane_get_file_format /
 kasane_validate_keymap / kasane_create_keymap_file /
 kasane_get_output_settings / kasane_status（kasane 未検出として返る）
+kasane_search_docs / kasane_list_docs / kasane_read_doc
+（マニュアルミラー経由。Web 版マニュアルの写しを読む）
 
 ## VM では使えないツール（kasane 本体が Windows 側にあるため）
-kasane_search_docs / kasane_list_docs / kasane_read_doc / kasane_list_devices / kasane_get_keymap /
+kasane_list_devices / kasane_get_keymap /
 kasane_get_layer_state / kasane_get_settings
+
+## マニュアルミラー
+- 置き場所: ~/workspace/custom-connectors/custom.kasane-mcp/kasane-home/manual/（ja と en）
+- 取得元: https://appletllc.com/web/kasane-doc/
+  （スナップショット: <取得した日>、表紙の版: <例: 1.02>）
+- client.py が、KASANE_HOME の既定値としてこの場所を渡す。
+- kasane_status の kasaneVersion は、マニュアル表紙からの検出値で、
+  kasane 本体が VM にあるわけではない。
 
 ## 注意
 - このサーバーはドライバにも kasane の設定にも書き込まない。

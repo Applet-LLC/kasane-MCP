@@ -47,7 +47,7 @@ On Windows with kasane installed, register the server in your MCP client:
 }
 ```
 
-The server also starts where kasane is not installed (Linux, macOS, the VM of a cloud AI, and so on). There you can search keycodes, read the format description, and validate and create settings files. Manual search and keyboard reading work only on Windows with kasane installed. A file created in such an environment stays in it, so you bring it to your own PC and import it in the editor. For having Muse (muse.ai) install the server in its own VM, see [docs/FOR-MUSE.en.md](docs/FOR-MUSE.en.md).
+The server also starts where kasane is not installed (Linux, macOS, the VM of a cloud AI, and so on). There you can search keycodes, read the format description, and validate and create settings files. Keyboard reading works only on Windows with kasane installed. Manual search also works elsewhere if you place a copy of the official web manual and point the `KASANE_HOME` environment variable at it. A file created in such an environment stays in it, so you bring it to your own PC and import it in the editor. For having Muse (muse.ai) install the server in its own VM, see [docs/FOR-MUSE.en.md](docs/FOR-MUSE.en.md).
 
 The manual (`manual\ja` and `manual\en`) is looked up in this order:
 
