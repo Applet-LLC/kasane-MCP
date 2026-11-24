@@ -186,6 +186,12 @@ If you installed kasane somewhere other than the default location, add an `env` 
 - Quit Claude Desktop completely and start it again.
 - On a work or school PC, local MCP servers may be restricted. Ask your administrator.
 
+### When an old version keeps running after a new one is published
+
+Even after a new version is published, the old server keeps running while Claude Desktop is running. Starting a new conversation does not replace it. To see the version, ask "What version of kasane-MCP is this?"
+
+Quit Claude Desktop, including from the system tray (not just closing the window), and start it again. If it is still the old version, change `args` in the settings to `["-y", "kasane-mcp@latest"]`. It then checks for the latest version at every start.
+
 ### When the settings file is not saved
 
 If the agent says "validation found errors", something in the settings is wrong. The agent fixes it and saves again. You can change the location with the `KASANE_MCP_OUTPUT_DIR` environment variable.
