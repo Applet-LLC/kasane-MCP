@@ -88,9 +88,9 @@ export function registerTools(server: McpServer, docs: DocsIndex, tool: KeymapTo
           status.devices = list.devices.length;
           if (list.licenseHint) {
             status.licenseHint = list.licenseHint;
-            next.push("ライセンスの認証を確認してください（kasane-doc://manual/ja/03-license）。");
+            next.push("ライセンスの認証を確認してください（kasane_read_doc の 03-license）。");
           }
-          if (list.deviceCount === 0) next.push("ドライバが読み込まれていないか、キーボードを認識していません。インストールと再起動を確認してください（kasane-doc://manual/ja/01-install）。");
+          if (list.deviceCount === 0) next.push("ドライバが読み込まれていないか、キーボードを認識していません。インストールと再起動を確認してください（kasane_read_doc の 01-install）。");
         } catch (e) {
           status.keymapToolError = (e as Error).message;
           next.push("KeymapTool がデバイス一覧を返しませんでした。ドライバの導入と、再起動の保留を確認してください。");

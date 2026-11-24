@@ -17,7 +17,13 @@ async function main(): Promise<void> {
   if (docs.pages.length === 0) {
     process.stderr.write("kasane-mcp: kasane のマニュアルが見つかりません（KASANE_HOME を設定するか、kasane をインストールしてください）。\n");
   }
-  const server = new McpServer({ name: NAME, version: VERSION });
+  const server = new McpServer(
+    { name: NAME, version: VERSION },
+    {
+      instructions:
+        "kasane（Windows 用キーリマッパー）の設定ファイルを作る。kasane の機能や手順、設定ファイルに書く内容は、推測せず、kasane_list_docs / kasane_search_docs で探し、kasane_read_doc で該当ページの全文を読んでから答える（検索の抜粋は一部）。設定ファイルの書式は kasane_get_file_format で確かめ、kasane_validate_keymap で点検してから kasane_create_keymap_file で保存する。キーボードへの反映は、ユーザーがエディタで行う。",
+    },
+  );
   registerDocs(server, docs);
   registerTools(server, docs, new KeymapTool(locateKeymapTool(docs.location.home)));
   registerPrompts(server);

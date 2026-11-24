@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 const GROUNDING =
-  "答えは kasane_search_docs と kasane-doc:// の内容に基づけること。ドキュメントに無いこと（ドライバの内部動作など）は推測せず、「ドキュメントには書かれていない」と答えること。";
+  "答えは、kasane_read_doc で読んだマニュアルの内容に基づけること（kasane_search_docs の抜粋だけで答えない）。ドキュメントに無いこと（ドライバの内部動作など）は推測せず、「ドキュメントには書かれていない」と答えること。";
 
 function user(text: string) {
   return { messages: [{ role: "user" as const, content: { type: "text" as const, text } }] };
@@ -16,8 +16,8 @@ export function registerPrompts(server: McpServer): void {
       user(
         [
           "kasane を初めて使うユーザーを、次の順に案内してください。",
-          "1. kasane-doc://manual/ja/01-install、03-license、06-calibration を確認し、導入の手順を短くまとめる。",
-          "2. 緊急解除の方法（kasane-doc://manual/ja/07-emergency）を、設定を変える前に必ず伝える。",
+          "1. kasane_read_doc で 01-install、03-license、06-calibration を読み、導入の手順を短くまとめる。",
+          "2. 緊急解除の方法（kasane_read_doc の 07-emergency）を、設定を変える前に必ず伝える。",
           "3. 最初のリマップを1つ決めてもらい、エディタでの設定手順を案内する。",
           GROUNDING,
         ].join("\n"),
@@ -38,7 +38,7 @@ export function registerPrompts(server: McpServer): void {
           "次の順に進めてください。",
           "1. kasane_status で導入状況を確かめる。",
           "2. kasane_list_devices と kasane_get_keymap で、対象のキーボードと今の割り当てを確かめる。",
-          "3. 使うキーコードは、書く前に kasane_search_keycodes で確かめる。マクロやコンボなどの書き方は、kasane_search_docs（08-key-assign、09-advanced、12-recipes）で確かめる。",
+          "3. 使うキーコードは、書く前に kasane_search_keycodes で確かめる。マクロやコンボなどの書き方は、kasane_read_doc で、該当するページ（08-key-assign、09-advanced、12-recipes）を全文読んで確かめる。",
           "4. 設定ファイルの書式は、推測せず kasane_get_file_format で確かめる（必須の項目と、動く例が返る）。",
           "5. 設定を *.kasane.json にして、kasane_validate_keymap で点検し、通ったら kasane_create_keymap_file で保存する。",
           "6. 結果の stepsForUser と ifLockedOut を、ユーザーにそのまま伝える。",
@@ -56,7 +56,7 @@ export function registerPrompts(server: McpServer): void {
       user(
         [
           "キーボードから入力できなくなったユーザーを助けてください。",
-          "kasane-doc://manual/ja/07-emergency を読み、緊急解除の手順（既定は左右の Ctrl と左右の Shift を3秒同時に押す）を最初に伝える。",
+          "kasane_read_doc で 07-emergency を読み、緊急解除の手順（既定は左右の Ctrl と左右の Shift を3秒同時に押す）を最初に伝える。",
           "そのあと、原因になった設定を、エディタで直す手順を案内する。",
           GROUNDING,
         ].join("\n"),

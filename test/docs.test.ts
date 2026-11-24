@@ -58,3 +58,60 @@ describe("tokenize", () => {
     expect(tokenize("緊急解除 KC_A")).toEqual(["緊急", "急解", "解除", "kc_a"]);
   });
 });
+
+describe("全文を読む（kasane_read_doc の中身）", () => {
+  const idx = DocsIndex.load(env);
+  it("ページ名・番号・URI のどれでも、同じページが見つかる", () => {
+    for (const q of ["07-emergency", "7", "emergency", "07-emergency.html", "kasane-doc://manual/ja/07-emergency"]) {
+      expect(idx.find(q, "ja")?.id, q).toBe("manual/ja/07-emergency");
+    }
+    expect(idx.find("cli-tutorial", "ja")?.slug).toBe("cli-tutorial");
+    expect(idx.find("nope", "ja")).toBeUndefined();
+  });
+  it("全文を返し、続きが無ければ next は無い", () => {
+    const r = idx.read("07-emergency", "ja");
+    expect(r.ok).toBe(true);
+    expect(r.text).toContain("緊急解除");
+    expect(r.next).toBeUndefined();
+    expect(r.total).toBe(r.text!.length);
+  });
+  it("節を指定すると、その節だけを返す", () => {
+    const all = idx.read("07-emergency", "ja").text!;
+    const sec = idx.read("07-emergency", "ja", "組み合わせ");
+    if (sec.ok) expect(sec.text!.length).toBeLessThan(all.length);
+    expect(idx.read("07-emergency", "ja", "zzzz").ok).toBe(false);
+  });
+  it("長いページは、offset で続きを読め、つなぐと全文になる", () => {
+    const all = idx.read("07-emergency", "ja", undefined, 0, 1_000_000).text!;
+    const parts: string[] = [];
+    let off = 0;
+    for (let i = 0; i < 100; i++) {
+      const r = idx.read("07-emergency", "ja", undefined, off, 60);
+      expect(r.ok).toBe(true);
+      parts.push(r.text!);
+      if (r.next === undefined) break;
+      expect(r.next).toBeGreaterThan(off);
+      off = r.next;
+    }
+    expect(parts.join("")).toBe(all);
+    expect(parts.length).toBeGreaterThan(1);
+  });
+  it("範囲外の offset は、エラー", () => expect(idx.read("07-emergency", "ja", undefined, 999999).ok).toBe(false));
+});
+
+describe("英語のマニュアル", () => {
+  const idx = DocsIndex.load(env);
+  it("読み込み、言語ごとに分ける。CLI チュートリアルは、どちらの一覧にも入る", () => {
+    expect(idx.languages()).toEqual(["ja", "en"]);
+    expect(idx.list("en").map((p) => p.slug)).toContain("07-emergency");
+    expect(idx.list("en").map((p) => p.slug)).toContain("cli-tutorial");
+    expect(idx.list("en").every((p) => p.slug === "cli-tutorial" || p.lang === "en")).toBe(true);
+  });
+  it("題名から、サイト名（kasane Help）を除く", () => expect(idx.find("7", "en")?.title).toBe("7. Emergency Release"));
+  it("英語で検索すると、英語のページが出る。日本語の検索には、英語のページは混ざらない", () => {
+    expect(idx.search("emergency release", 5, "en")[0].uri).toContain("manual/en/07-emergency");
+    expect(idx.search("緊急解除", 5, "ja").every((h) => !h.uri.includes("/en/"))).toBe(true);
+  });
+  it("英語の複数形でも見つかる（combinations → combination）", () => expect(idx.search("combinations", 5, "en")[0].slug).toBe("07-emergency"));
+  it("全文を、英語で読める", () => expect(idx.read("emergency", "en").text).toContain("hold the left and right Ctrl"));
+});

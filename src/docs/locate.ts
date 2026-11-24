@@ -7,6 +7,8 @@ export interface DocsLocation {
   home: string | null;
   /** manual/ja のフォルダ。 */
   manualDir: string | null;
+  /** manual/en のフォルダ。 */
+  manualDirEn: string | null;
   /** TUTORIAL-CLI.md のパス。 */
   tutorialPath: string | null;
   /** どの方法で見つけたか。 */
@@ -34,10 +36,12 @@ function fromRegistry(): string | null {
 function build(home: string, source: DocsLocation["source"]): DocsLocation | null {
   const manualDir = path.join(home, "manual", "ja");
   const tutorialPath = path.join(home, "docs", "TUTORIAL-CLI.md");
+  const manualDirEn = path.join(home, "manual", "en");
   const hasManual = existsSync(manualDir);
+  const hasEn = existsSync(manualDirEn);
   const hasTutorial = existsSync(tutorialPath);
-  if (!hasManual && !hasTutorial) return null;
-  return { home, manualDir: hasManual ? manualDir : null, tutorialPath: hasTutorial ? tutorialPath : null, source };
+  if (!hasManual && !hasEn && !hasTutorial) return null;
+  return { home, manualDir: hasManual ? manualDir : null, manualDirEn: hasEn ? manualDirEn : null, tutorialPath: hasTutorial ? tutorialPath : null, source };
 }
 
 /** KASANE_HOME → レジストリ → 既定の場所、の順で探す。 */
@@ -52,5 +56,5 @@ export function locateDocs(env: NodeJS.ProcessEnv = process.env): DocsLocation {
     const loc = build(home, source);
     if (loc) return loc;
   }
-  return { home: null, manualDir: null, tutorialPath: null, source: "none" };
+  return { home: null, manualDir: null, manualDirEn: null, tutorialPath: null, source: "none" };
 }

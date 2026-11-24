@@ -29,7 +29,7 @@ export interface ParsedPage {
 
 /** マニュアルの HTML（<main> の中）を、見出し単位のテキストにする。 */
 export function parseManualHtml(html: string): ParsedPage {
-  const title = inline((/<title>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? "").replace(/\s*-\s*かさね ヘルプ\s*$/, ""));
+  const title = inline((/<title>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? "").replace(/\s*-\s*(かさね ヘルプ|kasane Help)\s*$/, ""));
   let body = /<main[^>]*>([\s\S]*?)<\/main>/i.exec(html)?.[1] ?? html;
   body = body.replace(/<div class="pagehead">[\s\S]*?<\/div>/i, "");
   body = body.replace(/<(script|style)[\s\S]*?<\/\1>/gi, "");

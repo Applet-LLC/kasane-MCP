@@ -21,7 +21,7 @@ Claude Desktop の登録方法は、GETTING-STARTED.md にあります（Muse �
   設定ファイル（*.kasane.json）の生成・検証だけを行います。
 - Muse の VM には kasane 本体（Windows）が無いため、以下のツールは使えません。
   使えないことをユーザーに正直に伝えてください。動くふりをしないでください。
-  - 使えない: `kasane_search_docs`、`kasane_list_devices`、`kasane_get_keymap`、
+  - 使えない: `kasane_search_docs`、`kasane_list_docs`、`kasane_read_doc`、`kasane_list_devices`、`kasane_get_keymap`、
     `kasane_get_layer_state`、`kasane_get_settings`
   - 使える: `kasane_mcp_version`、`kasane_search_keycodes`、`kasane_get_file_format`、
     `kasane_validate_keymap`、`kasane_create_keymap_file`、`kasane_get_output_settings`、
@@ -99,7 +99,7 @@ else:
 
 ```sh
 python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py list-tools
-# -> tools が 12 個返ること（0.1.8時点。将来の版で増減した場合は、
+# -> tools が 14 個返ること（0.1.10時点。将来の版で増減した場合は、
 #     その版の個数を正とし、減っている場合のみ異常として報告すること）
 
 python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool \
@@ -131,7 +131,7 @@ kasane_validate_keymap / kasane_create_keymap_file /
 kasane_get_output_settings / kasane_status（kasane 未検出として返る）
 
 ## VM では使えないツール（kasane 本体が Windows 側にあるため）
-kasane_search_docs / kasane_list_devices / kasane_get_keymap /
+kasane_search_docs / kasane_list_docs / kasane_read_doc / kasane_list_devices / kasane_get_keymap /
 kasane_get_layer_state / kasane_get_settings
 
 ## 注意

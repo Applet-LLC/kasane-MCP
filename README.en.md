@@ -2,19 +2,21 @@
 
 [日本語](README.md) | English
 
-An MCP server that lets AI agents read the manual of [kasane](https://appletllc.com/), a key remapper for Windows. It can answer questions such as "How do I use emergency release?" or "What is a tap dance?" with steps that match the installed version.
+An MCP server that creates settings files for [kasane](https://appletllc.com/%e3%82%ad%e3%83%bc%e3%83%aa%e3%83%9e%e3%83%83%e3%83%97%e3%82%bd%e3%83%95%e3%83%88-%e3%81%8b%e3%81%95%e3%81%ad%e3%80%80/), a key remapping software for Windows 11.
 
-**This local MCP server only creates settings files.** You apply them yourself, by importing the file in the kasane editor.
+Import a created settings file in the kasane editor, and it is applied to kasane's settings.
 
-Status: v0.1.9 (manual search, read-only tools, settings-file generation).
+Status: v0.1.10 (manual search, read-only tools, settings-file generation).
 
-> **Note on language:** the tool descriptions, tool results and prompts of this server are written in Japanese, and so is the manual it searches (`manual\ja`). Your agent can translate them for you. The editor's screen names quoted in this document are the ones shown in the English UI.
+> **Note on language:** the tool descriptions, tool results and prompts of this server are written in Japanese. The manual can be searched and read in both Japanese and English (the `language` option; the CLI tutorial exists only in Japanese). Your agent can translate for you. The editor's screen names quoted in this document are the ones shown in the English UI.
 
 ## What it provides
 
 | Kind | Name | Description |
 |---|---|---|
-| Tool | `kasane_search_docs` | Searches the manual and the CLI tutorial; returns excerpts and their URIs |
+| Tool | `kasane_list_docs` | Lists the pages of the manual and the CLI tutorial (page name, title, section headings). `language` chooses Japanese (`ja`) or English (`en`) |
+| Tool | `kasane_read_doc` | Returns the full text of a page (or one section). For a long page it returns the position (`offset`) to continue from. This lets an agent read the whole page instead of guessing from search excerpts |
+| Tool | `kasane_search_docs` | Searches the manual and the CLI tutorial; returns excerpts and page names. `language` chooses Japanese or English |
 | Tool | `kasane_status` | Installation status (KeymapTool, manual, kasane and kasane-MCP versions, number of keyboards, license hints) and what to do next |
 | Tool | `kasane_mcp_version` | The version of kasane-MCP itself |
 | Tool | `kasane_get_output_settings` | Where settings files are saved (the default, the `KASANE` environment variable, whether saving there is allowed) |
@@ -26,7 +28,7 @@ Status: v0.1.9 (manual search, read-only tools, settings-file generation).
 | Tool | `kasane_get_file_format` | Describes the settings-file format (`*.kasane.json`) with working examples. Call it before writing a file |
 | Tool | `kasane_validate_keymap` | Checks a `*.kasane.json` without touching any settings (keycodes, number ranges, duplicates, references to missing layers, where each action is allowed, power-key warnings) |
 | Tool | `kasane_create_keymap_file` | Saves a validated setting as a new `*.kasane.json` and returns the steps to apply it. The location is chosen with `destination` (`KASANE` needs your permission) |
-| Resource | `kasane-doc://manual/ja/{page}` | A full page of the manual (Japanese) |
+| Resource | `kasane-doc://manual/ja/{page}`, `kasane-doc://manual/en/{page}` | A full page of the manual (Japanese, English). Some clients do not let the agent read resources by itself (a person attaches them), so have the agent use `kasane_read_doc` |
 | Resource | `kasane-doc://format/kasane-export` | The settings-file format and examples (same as `kasane_get_file_format`) |
 | Resource | `kasane-doc://cli-tutorial` | The KeymapTool (CLI) tutorial |
 | Prompt | `setup-first-time` / `remap-key` / `recover-lockout` | First-time setup, assigning keys, when you can't type |
@@ -47,7 +49,7 @@ On Windows with kasane installed, register the server in your MCP client:
 
 The server also starts where kasane is not installed (Linux, macOS, the VM of a cloud AI, and so on). There you can search keycodes, read the format description, and validate and create settings files. Manual search and keyboard reading work only on Windows with kasane installed. A file created in such an environment stays in it, so you bring it to your own PC and import it in the editor. For having Muse (muse.ai) install the server in its own VM, see [docs/FOR-MUSE.en.md](docs/FOR-MUSE.en.md).
 
-The manual is looked up in this order:
+The manual (`manual\ja` and `manual\en`) is looked up in this order:
 
 1. The `KASANE_HOME` environment variable (a folder that contains `manual\ja` and `docs\TUTORIAL-CLI.md`)
 2. `InstallDir` in the registry

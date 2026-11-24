@@ -17,7 +17,7 @@ How to register it in Claude Desktop is in GETTING-STARTED.en.md (it does not ap
 - An MCP server for kasane (a key remapper for Windows). npm package `kasane-mcp`, stdio transport, Node.js >= 18.
 - It does **not write** to the driver or to kasane's settings. It only searches the manual and generates and validates settings files (`*.kasane.json`).
 - Muse's VM has no kasane (it is Windows software), so the tools below do not work. Tell the user so honestly. Do not pretend they work.
-  - Not available: `kasane_search_docs`, `kasane_list_devices`, `kasane_get_keymap`, `kasane_get_layer_state`, `kasane_get_settings`
+  - Not available: `kasane_search_docs`, `kasane_list_docs`, `kasane_read_doc`, `kasane_list_devices`, `kasane_get_keymap`, `kasane_get_layer_state`, `kasane_get_settings`
   - Available: `kasane_mcp_version`, `kasane_search_keycodes`, `kasane_get_file_format`, `kasane_validate_keymap`, `kasane_create_keymap_file`, `kasane_get_output_settings`, `kasane_status` (returns normally, reporting that kasane was not found)
 - Files you create are made inside the VM. Hand the file itself to the user, so they can import it on their own PC.
 
@@ -90,7 +90,7 @@ else:
 
 ```sh
 python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py list-tools
-# -> 12 tools are returned (as of 0.1.8. If a later version adds or removes tools,
+# -> 14 tools are returned (as of 0.1.10. If a later version adds or removes tools,
 #    take that version's count as correct, and report only a decrease as abnormal)
 
 python3 ~/workspace/custom-connectors/custom.kasane-mcp/bin/client.py call-tool \
@@ -122,7 +122,7 @@ kasane_validate_keymap / kasane_create_keymap_file /
 kasane_get_output_settings / kasane_status (returns "kasane not found")
 
 ## Tools that do not work in the VM (kasane itself is on the Windows side)
-kasane_search_docs / kasane_list_devices / kasane_get_keymap /
+kasane_search_docs / kasane_list_docs / kasane_read_doc / kasane_list_devices / kasane_get_keymap /
 kasane_get_layer_state / kasane_get_settings
 
 ## Notes

@@ -2,17 +2,19 @@
 
 日本語 | [English](README.en.md)
 
-[kasane（かさね）](https://appletllc.com/)のマニュアルを、AI エージェントが読めるようにする MCP サーバーです。「緊急解除のやり方は？」「タップダンスとは？」といった質問に、インストール済みのバージョンに合った手順で答えられます。
+Windows 11 向けキーリマップソフト [kasane（かさね）](https://appletllc.com/%e3%82%ad%e3%83%bc%e3%83%aa%e3%83%9e%e3%83%83%e3%83%97%e3%82%bd%e3%83%95%e3%83%88-%e3%81%8b%e3%81%95%e3%81%ad%e3%80%80/) の設定ファイル作成を実施する MCP サーバーです。
 
-**このローカル MCP サーバーは、設定ファイルを作るのみです。** かさねエディタへの設定の反映は、ユーザーによる設定ファイルのインポートで実施できます。
+作られた設定ファイルを、かさねエディタ上でインポートすると、かさね側の設定に反映できます。
 
-状態: v0.1.9（ドキュメント参照、読み取りツール、設定ファイルの生成）。
+状態: v0.1.10（ドキュメント参照、読み取りツール、設定ファイルの生成）。
 
 ## 提供するもの
 
 | 種類 | 名前 | 内容 |
 |---|---|---|
-| ツール | `kasane_search_docs` | マニュアルと CLI チュートリアルを検索し、節の抜粋と URI を返す |
+| ツール | `kasane_list_docs` | マニュアルと CLI チュートリアルのページの一覧（ページ名、題名、節の見出し）。`language` で日本語（`ja`）か英語（`en`）を選ぶ |
+| ツール | `kasane_read_doc` | ページの全文（または 1 つの節）を返す。長いページは、続きの位置（`offset`）を返す。エージェントが、検索の抜粋で推測せず、全文を読むためのツール |
+| ツール | `kasane_search_docs` | マニュアルと CLI チュートリアルを検索し、節の抜粋とページ名を返す。`language` で日本語か英語を選ぶ |
 | ツール | `kasane_status` | 導入状況（KeymapTool、マニュアル、kasane と kasane-MCP のバージョン、キーボード数、ライセンスの兆候）と、次にやること |
 | ツール | `kasane_mcp_version` | kasane-MCP 自身のバージョン |
 | ツール | `kasane_get_output_settings` | 設定ファイルの保存先（既定、環境変数 `KASANE`、`KASANE` への保存の許可の有無） |
@@ -24,7 +26,7 @@
 | ツール | `kasane_get_file_format` | 設定ファイル（`*.kasane.json`）の書式の説明と、動く例を返す。ファイルを書く前に呼ぶ |
 | ツール | `kasane_validate_keymap` | `*.kasane.json` を、設定に触れずに点検する（キーコード、番号の範囲、重複、存在しないレイヤーへの参照、電源キーの警告） |
 | ツール | `kasane_create_keymap_file` | 検証に通った設定を、`*.kasane.json` として新しいファイルに保存する。反映の手順を返す。保存先は `destination` で選べる（`KASANE` は許可が要る） |
-| リソース | `kasane-doc://manual/ja/{page}` | マニュアル（日本語）のページ全文 |
+| リソース | `kasane-doc://manual/ja/{page}`、`kasane-doc://manual/en/{page}` | マニュアル（日本語、英語）のページ全文。クライアントによっては、エージェントが自分では読めない（人が添付する）ので、エージェントには `kasane_read_doc` を使わせる |
 | リソース | `kasane-doc://format/kasane-export` | 設定ファイルの書式の説明と例（`kasane_get_file_format` と同じ） |
 | リソース | `kasane-doc://cli-tutorial` | KeymapTool（CLI）のチュートリアル |
 | プロンプト | `setup-first-time` / `remap-key` / `recover-lockout` | 初回設定、キーの割り当て、入力できなくなったとき |
@@ -49,7 +51,7 @@ kasane が入っていない環境（Linux や macOS、クラウド側の AI の
 
 ドキュメントは、次の順に探します。
 
-1. 環境変数 `KASANE_HOME`（`manual\ja` と `docs\TUTORIAL-CLI.md` があるフォルダ）
+1. 環境変数 `KASANE_HOME`（`manual\ja`・`manual\en` と `docs\TUTORIAL-CLI.md` があるフォルダ）
 2. レジストリの `InstallDir`
 3. `C:\Program Files\applet\kasane`
 
